@@ -7,7 +7,6 @@
 
 from pathlib import Path
 import csv
-import base64
 import json
 import numpy as np
 import pickle
@@ -281,6 +280,7 @@ class Disk_Jockey():
         loaded_root_metadata = json.load(metadatum_file)
         metadatum_file.close()
 
+
         # We add data nodes which are not committed yet but exist on disk
         self.create_data_nodes(loaded_root_metadata["data_bulk_types"])
         # We make sure loaded metadata types agree
@@ -295,11 +295,11 @@ class Disk_Jockey():
         # names, only loads data from those data groups.
 
 
+        self.load_root_metadata()
         if data_groups is None:
             self.load_data(list(self.data_nodes.keys()))
         else:
             # First, load the metadata as they exist on disk, so we know the proper types etc
-            self.load_root_metadata()
             for data_group in data_groups:
                 for datum_name in self.data_nodes[data_group]:
                     self.load_datum(data_group, datum_name)

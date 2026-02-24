@@ -96,14 +96,17 @@ class John_Physics:
 
         # Now, let us pass the result onto Disk Jockey. Let's create a new data node:
         data_group_name = f"{number_of_strings}_strings"
-        self.dj.create_data_nodes({data_group_name : {"result" : "txt"}})
+        self.dj.create_data_nodes({data_group_name : {"result" : "json"}})
         # The data group name should be unique: here I'm playing a dangerous game. Do better than this!
 
         # Now, let us store the data:
-        self.dj.commit_datum_bulk(data_group_name, "result", result.tostring())
+        self.dj.commit_datum_bulk(data_group_name, "result", result.tolist())
         self.dj.commit_metadatum(data_group_name, "result", {"duration" : duration})
         # The actual file is going to be a .txt, so string conversion it is. The metadata file is a .json,
         # and we can add datapoints to it until the point of writing to disk (which comes later!)
+
+        # We should also store them internally for analysis, plotting etc.
+        self.string_solutions[data_group_name] = result
 
         self.j.exit()
 
@@ -126,16 +129,71 @@ class John_Physics:
         self.j.exit()
         return(magnified_friendship)
 
+    def print_string_solutions(self):
+        # A cheeky output function. Pretend these are nice plots and whatnot.
+        self.j.enter("Printing calculated solutions...")
+        for dataset_label, dataset_value in self.string_solutions.items():
+            self.j.write(f"Result for dataset '{dataset_label}': {np.sum(dataset_value)}")
+        self.j.exit()
+
+    def save_data(self):
+        # Here we tell Disk Jockey to save the committed data to disk
+
+        self.dj.commit_datum_bulk("system", "log", self.j.dump())
+        # First, we commit the current state of the Journal. Note that the internal dump looks a bit
+        # different to what's in your terminal, with no fancy printing or Semaphor artifacts.
+        self.dj.commit_metadatum_point("system", "log", "datasets", list(self.string_solutions.keys()))
+        # We can add to existing metadata values datapoint by datapoint.
+
+        self.dj.save_data()
+        # We can specify which data groups to save, or save them all!
+
+    def load_data(self):
+        # Here, we simply tell Disk Jockey to load data from disk. Because it took notes last time, it now
+        # knows exactly what files to load.
+
+        self.j.enter("Loading data...", 0)
+
+        self.dj.load_data()
+        # Once again, we can restrict ourselves to loading only particular data groups. This can be very
+        # useful: for example, I work on a script for computational chemistry, and sometimes I want to load
+        # the calculated molecule properties without loading my old datasets, so I don't have to wait for the
+        # program to perform costly calculation on the same molecule again. And those old datasets will wait
+        # for me on the disk until I need to compare them to the new ones at any later point!
+
+        # Of course, we still need to access the data. Let's save it to some internal property here.
+        for dataset_label in self.dj.metadata["system"]["log"]["datasets"]:
+            self.j.write(f"Restoring dataset {dataset_label}", 3)
+            self.string_solutions[dataset_label] = np.array(self.dj.data_bulks[dataset_label]["result"])
+        # As you can see, you still need to know the structure of the data in order to be able to interpret
+        # it. With great freedom comes great flexibility!
+
+        self.j.exit()
 
 
-john = John_Physics("example")
-john.solve_string_theory(12)
+def saving_example():
+    john = John_Physics("example")
+    john.solve_string_theory(12)
+    john.print_string_solutions()
+    john.save_data()
+    john.j.close_journal()
+    # This de-buffers the highlighted row and prints out a dinkus. It would be better to have it automated in
+    # some teardown routine of John_Physics!
 
-john.j.close_journal()
-# This de-buffers the highlighted row and prints out a dinkus. It would be better to have it automated in
-# some teardown routine of John_Physics!
+def loading_example():
+    john = John_Physics("example")
+    john.load_data()
+    john.solve_string_theory(10)
+    # After loading old data, we can still add new data. Saving at the end stores both!
+    john.print_string_solutions()
+    john.save_data()
+    john.j.close_journal()
 
+# To see how this example works, firstly run the saving_example() function. Then, go see the contents of the
+# outputs/ subdirectory which will be created. Then, comment out the saving_example() call and instead run
+# the loading_example() function. Enjoy!
 
-
+saving_example()
+#loading_example()
 
 
