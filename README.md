@@ -5,11 +5,11 @@ Utilities for managing research project software: logging, dataset control, disk
 This repository is intended to be integrated into your project as a submodule.
 
 ## Adding the submodule
-Let's say we want to place the scripts into a subdirectory /utils. In your project directory, run the following commands:
+Let's say we want to place the scripts into a subdirectory ```/project_management_utils```. In your project directory, run the following commands:
 
 ```console
-git submodule add https://github.com/michael-horansky/project-management-utils utils
-git add .gitmodules utils
+git submodule add https://github.com/michael-horansky/project-management-utils project_management_utils
+git add .gitmodules project_management_utils
 ```
 
 The submodule is now registered in .gitmodules with its directory. Commit the change and push to push the submodule integration upstream.
@@ -17,7 +17,7 @@ The submodule is now registered in .gitmodules with its directory. Commit the ch
 Afterwards, install the module as a library like so:
 
 ```console
-python -m pip install -e ./utils
+python -m pip install -e ./project_management_utils
 ```
 
 The installation is editable (```-e``` flag) so that python automatically reads the source files after you update the submodule. Note that for the installation you should be in your virtual environment.
@@ -26,7 +26,7 @@ The installation is editable (```-e``` flag) so that python automatically reads 
 To bring your local copy of the utils submodule up-to-date, run the following command from your project repository:
 
 ```console
-git submodule update --remote utils
+git submodule update --remote project_management_utils
 ```
 
 To push the submodule update upstream, add the submodule directory, then commit and push your main repository as usual.

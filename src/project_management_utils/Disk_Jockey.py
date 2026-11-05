@@ -11,8 +11,8 @@ import json
 import numpy as np
 import pickle
 
-from .class_Journal import color
-from .class_Correspondent import Correspondent
+from .color import color
+from .Correspondent import Correspondent
 
 
 # JSON serialization of complex ndarrays
