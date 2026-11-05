@@ -14,6 +14,14 @@ git add .gitmodules utils
 
 The submodule is now registered in .gitmodules with its directory. Commit the change and push to push the submodule integration upstream.
 
+Afterwards, install the module as a library like so:
+
+```console
+python -m pip install -e ./utils
+```
+
+The installation is editable (```-e``` flag) so that python automatically reads the source files after you update the submodule. Note that for the installation you should be in your virtual environment.
+
 ## Updating the submodule
 To bring your local copy of the utils submodule up-to-date, run the following command from your project repository:
 
@@ -51,8 +59,7 @@ Semaphors allow you to attach progress bars to routines which are displayed on t
 The following Python 3 libraries are required:
 - pathlib
 - csv
-- base
 - json
-- numpy
 - pickle
 - time
+- numpy

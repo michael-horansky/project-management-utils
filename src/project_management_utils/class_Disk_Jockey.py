@@ -7,13 +7,12 @@
 
 from pathlib import Path
 import csv
-import base64
 import json
 import numpy as np
 import pickle
 
-from utils.class_Journal import color
-from utils.class_Correspondent import Correspondent
+from .class_Journal import color
+from .class_Correspondent import Correspondent
 
 
 # JSON serialization of complex ndarrays

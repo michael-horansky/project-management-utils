@@ -1,4 +1,4 @@
-from utils.class_Semaphor import Semaphor
+from .class_Semaphor import Semaphor
 
 # -----------------------------------------------------------------------------
 # -------------------------- Typographical constants --------------------------

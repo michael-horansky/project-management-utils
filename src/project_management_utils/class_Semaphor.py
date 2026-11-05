@@ -1,28 +1,8 @@
-# Like Semaphor but cool
-# Can create multiple events and thread them
-#
-# How does this work?
-# Whenever you want to semaphorize a function, make sure it takes "semaphor_event_id" as an argument,
-# and add [semaphor instance].update(semaphor_event_id) at the very end of the function.
-# Before calling the function, create a new event with a custom message, which yields a unique event ID,
-# and then pass it into the semaphorised function as an argument.
-# After the function wrapper concludes, finish the event.
-#
-# Example pseudocode:
-#
-# my_semaphor = new Semaphor()
-#
-# def func(..., semaphor_event_id):
-#     ...
-#     my_semaphor.update(semaphor_event_id)
-#     return(...)
-#
-# new_event_ID = my_semaphor.create_event(tau_space)
-# while(...):
-#     ... = func(..., new_event_ID)
-#     ...
-#
-#
+# -----------------------------------------------------------------------------
+# ------------------------------ class Semaphor -------------------------------
+# -----------------------------------------------------------------------------
+# Manages asynchronous progress bars and calculates estimated times of finish.
+# Auxiliary class for Journal; does not manage printing at all.
 
 import time
 
