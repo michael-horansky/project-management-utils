@@ -24,6 +24,11 @@ Since your project now contains a submodule, you need to explicitly state the in
 
 >git clone --recurse-submodules \[your project repository\]
 
+```console
+foo@bar:~$ whoami
+foo
+```
+
 # How to use?
 Go to example.py and read through the source. The annotation will teach you how to use all main functionalities of the three provided modules.
 
