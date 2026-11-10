@@ -78,7 +78,7 @@ class Printable_Semaphor(Semaphor):
         self.process_pipe_i[S_ID] = (self.process_pipe_i[S_ID] + 1) % len(Printable_Semaphor.spinning_pipes)
         return super().update(S_ID, tau)
 
-    def update(self, S_ID, tau_progress = 1):
+    def progress(self, S_ID, tau_progress = 1):
         self.process_pipe_i[S_ID] = (self.process_pipe_i[S_ID] + 1) % len(Printable_Semaphor.spinning_pipes)
         return super().progress(S_ID, tau_progress)
 
