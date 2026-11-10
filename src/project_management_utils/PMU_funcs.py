@@ -78,8 +78,9 @@ def dtstr(seconds, max_depth = 2, concise = False, force_width = None, leading =
             else:
                 leading_str = str(num_val) + get_time_unit(i, concise, num_val)
 
+            trailing_delim = ''
             if (not concise) and num_val != 0 and max_depth > 1:
-                leading_str += ' ' # delimiter from next value
+                trailing_delim = ' '
 
             if force_width is None:
                 if max_depth == 1:
@@ -93,11 +94,18 @@ def dtstr(seconds, max_depth = 2, concise = False, force_width = None, leading =
                 else:
                     # We cap it here
                     return ' ' * force_width
+            elif len(leading_str) == force_width:
+                # With the delim, we could potentially enter negative force_width
+                return leading_str
             elif max_depth == 1:
                 # Final term, left-justified
                 return leading_str.ljust(force_width)
             else:
-                return leading_str + dtstr(remainder, max_depth - 1, concise, force_width - len(leading_str), False)
+                tail_rec = dtstr(remainder, max_depth - 1, concise, force_width - len(leading_str + trailing_delim), False)
+                if tail_rec == "":
+                    return leading_str.ljust(force_width)
+                else:
+                    return leading_str + trailing_delim + tail_rec
     # Milliseconds
     num_val = int(round(seconds / 0.001))
     if num_val == 0 and not leading:

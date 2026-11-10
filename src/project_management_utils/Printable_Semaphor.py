@@ -127,11 +127,9 @@ class Printable_Semaphor(Semaphor):
             return plain_res
 
         # We insert the colors.
-
         N_color = math.floor(self.width[S_ID] * self.processes[S_ID].cur_tau / self.processes[S_ID].tau_max)
 
         fancy_res = '[' + self.bg_highlight(S_ID, msg[:N_color]) + self.fg_highlight(S_ID, msg[N_color:]) + ']'
-        #fancy_res = f"[{color.hr[self.c[S_ID]]['bb']}{color.BLACK}{}{color.hr[self.c[S_ID]]['bf']}{color.bg.DEFAULT}{msg[N_color:]}{color.DEFAULT}]"
         return fancy_res
 
     def progress_bars(self, fancy = True):
