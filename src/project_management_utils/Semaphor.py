@@ -139,17 +139,17 @@ class Semaphor():
         return(process_duration)
 
     def update(self, event_ID, tau):
-        if event_ID not in self.tau_space.keys():
+        if event_ID not in self.processes.keys():
             raise Exception(f"  ERROR: Semaphor '{event_ID}' does not exist.")
         return self.processes[event_ID].update(tau)
 
     def progress(self, event_ID, tau_progress):
-        if event_ID not in self.tau_space.keys():
+        if event_ID not in self.processes.keys():
             raise Exception(f"  ERROR: Semaphor '{event_ID}' does not exist.")
         return self.processes[event_ID].progress(tau_progress)
 
     def overtime(self, event_ID, tau_overtime):
-        if event_ID not in self.tau_space.keys():
+        if event_ID not in self.processes.keys():
             raise Exception(f"  ERROR: Semaphor '{event_ID}' does not exist.")
         return self.processes[event_ID].overtime(tau_overtime)
 
