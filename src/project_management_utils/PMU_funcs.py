@@ -100,7 +100,7 @@ def dtstr(seconds, max_depth = 2, concise = False, force_width = None, leading =
                 return leading_str + dtstr(remainder, max_depth - 1, concise, force_width - len(leading_str), False)
     # Milliseconds
     num_val = int(round(seconds / 0.001))
-    if num_val == 0:
+    if num_val == 0 and not leading:
         leading_str = ""
     else:
         leading_str = str(num_val) + get_time_unit(None, concise, num_val)
