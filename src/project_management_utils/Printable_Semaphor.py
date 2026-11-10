@@ -73,6 +73,9 @@ class Printable_Semaphor(Semaphor):
         if self.processes[S_ID].ETA is None:
             # No way to estimate the ETA, as we're still waiting for the first event
             return 'unknown'
+        msg = PMU_funcs.dtstr(self.processes[S_ID].ETA, concise = True, force_width = 7)
+        if len(msg) != 7:
+            print(f"\n\nERROR! justifying dtstr didnt work for s = {self.processes[S_ID].ETA}\n\n")
         return PMU_funcs.dtstr(self.processes[S_ID].ETA, concise = True, force_width = 7)
 
     def get_percentage_str(self, S_ID):
