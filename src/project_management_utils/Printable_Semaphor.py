@@ -52,7 +52,7 @@ class Printable_Semaphor(Semaphor):
     def get_color_palette(self, iden):
         if iden in color.hr.keys():
             return color.hr[iden]
-        elif iden in self.processes.keys():
+        elif iden in self.c.keys():
             return color.hr[self.c[iden]]
         else:
             raise Exception(f"Unknown color identifier: {iden}")
