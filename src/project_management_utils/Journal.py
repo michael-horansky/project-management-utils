@@ -221,7 +221,8 @@ class Journal():
         print(self.pre(add_progress_bar = True, enforce_depth = self.last_printed_depth) + self.cur_highlight(msg), end="\r")
 
     def reload_preview(self):
-        self.preview_print(self.last_printed_line, update_last_printed_depth = False)
+        if self.print_on_the_fly and self.fancy_printing:
+            self.preview_print(self.last_printed_line, update_last_printed_depth = False)
 
     # Write method
 
