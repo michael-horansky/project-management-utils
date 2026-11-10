@@ -249,11 +249,15 @@ class Journal():
             print(self.pipe_stack(self.last_printed_depth) + self.last_printed_line)
             self.last_printed_line = None
 
-    def preview_print(self, msg):
+    def preview_print(self, msg, msg_length):
         # If fancy printing is enabled, we always pre-print the last line in different colour
-        print(self.pre(add_progress_bar = True) + self.cur_highlight(msg), end="\r")
+        msg_prefix, prefix_length = self.pre(add_progress_bar = True)
+        print( + self.cur_highlight(msg), end="\r")
         self.last_printed_line = msg
         self.last_printed_depth = self.depth
+
+    def reload_preview(self):
+        self.preview_print(self.last_printed_line)
 
     """def spinning_pipe(self):
         if self.fancy_printing:
@@ -270,9 +274,9 @@ class Journal():
 
         if self.verbosity >= max(v, self.get_stack_v()):
             if plain_msg is None:
-                self.journal_text += self.pre(False) + agent_plain_pre + msg + "\n"
-            else:
-                self.journal_text += self.pre(False) + agent_plain_pre + plain_msg + "\n"
+                plain_msg = msg
+
+            self.journal_text += self.pre(False) + agent_plain_pre + msg + "\n"
             if self.print_on_the_fly and not prevent_printing_on_the_fly:
                 if self.fancy_printing:
                     # We firstly print the last submitted line, and then the preprint of the current line
@@ -559,17 +563,17 @@ class Journal():
     def semaphor_update(self, tau, S_ID = None):
         if self.semaphor.update(self.get_standard_S_ID(S_ID), tau):
             # We updated. Time to flush the highlight
-            self.preview_print(self.last_printed_line)
+            self.reload_preview()
 
     def semaphor_progress(self, tau_progress = 1, S_ID = None):
         if self.semaphor.progress(self.get_standard_S_ID(S_ID), tau_progress):
             # We updated. Time to flush the highlight
-            self.preview_print(self.last_printed_line)
+            self.reload_preview()
 
     def semaphor_overtime(self, tau_overtime = 1, S_ID = None):
         if self.semaphor.overtime(self.get_standard_S_ID(S_ID), tau_overtime):
             # We updated. Time to flush the highlight
-            self.preview_print(self.last_printed_line)
+            self.reload_preview()
 
 
     def exit(self, end_message = None):
@@ -578,24 +582,33 @@ class Journal():
 
 
         if end_message is not None:
-            exit_msg = " " + end_message
+            exit_msg_plain = " " + end_message
         else:
-            exit_msg = ""
+            exit_msg_plain = ""
+        exit_msg_fancy = exit_msg_plain
 
         # check if it's semaphored
         was_it_semaphored = last_routine[3] is not None
         if was_it_semaphored:
             # We exit the semaphored routine
-            process_duration, semaphor_exit_msg = self.semaphor.finish_event(last_routine[3])
+            process_duration, semaphor_exit_msg_fancy, semaphor_exit_msg_plain = self.semaphor.finish_event(last_routine[3])
             self.cur_semaphor_event = None
             self.cur_semaphor_prefix_id = 0
-            exit_msg = " " + semaphor_exit_msg
+            exit_msg_fancy = " " + semaphor_exit_msg_fancy
+            exit_msg_plain = " " + semaphor_exit_msg_plain
         self.depth -= 1
         if self.fancy_printing and self.verbosity >= last_routine[1]:
-            self.write(f"\\_{exit_msg}", last_routine[1], prevent_printing_on_the_fly = True)
+
+            # exit_msg is the plain one. We create the fancy one, too.
+            self.write("\\_" + exit_msg_fancy, last_routine[1], plain_msg = "\\_" + exit_msg_plain)
+
+            """self.write(f"\\_{exit_msg}", last_routine[1], prevent_printing_on_the_fly = True)
             if self.print_on_the_fly:
-                self.commit_last_line() # we don't want to hang the last semaphor update
-                self.preview_print(gradual_fg_color[self.depth % len(gradual_fg_color)] + "\\_" + color.END + exit_msg)
+
+
+
+                #self.commit_last_line() # we don't want to hang the last semaphor update
+                #self.preview_print(gradual_fg_color[self.depth % len(gradual_fg_color)] + "\\_" + color.END + exit_msg)"""
         else:
             self.write(f"\\_{exit_msg}", last_routine[1])
         if was_it_semaphored:

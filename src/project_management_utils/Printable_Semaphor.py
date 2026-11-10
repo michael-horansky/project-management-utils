@@ -27,7 +27,14 @@ class Printable_Semaphor(Semaphor):
         self.process_pipe_i = {}
         self.time_format = time_format
 
+        self.padding_length = 0
+
     def create_event(self, label, tau_space, update_on_every_tick = False, c = None, width = 0):
+
+        self.padding_length += max(width, Printable_Semaphor.min_progress_bar_width)
+        if len(self.processes) > 0:
+            self.padding_length += 1
+
         new_ID = super().create_event(tau_space, update_on_every_tick)
         if c is None or c not in color.hr.keys():
             c = 'green' # default
@@ -36,21 +43,38 @@ class Printable_Semaphor(Semaphor):
         self.width[new_ID] = max(width, Printable_Semaphor.min_progress_bar_width)
         self.process_pipe_i[new_ID] = 0
 
+
+
         return(new_ID)
 
-    def get_exit_msg(self, process_label, process_duration):
-        return(f"Process '{process_label}' finished after {PMU_funcs.dtstr(process_duration)}.")
+    # ----------------------- String formatting methods -----------------------
+
+    def bg_highlight(self, S_ID, msg):
+        return color.hr[self.c[S_ID]]['bb'] + color.BLACK + msg + color.DEFAULT + color.bg.DEFAULT
+
+    def fg_highlight(self, S_ID, msg):
+        return color.hr[self.c[S_ID]]['bf'] + msg + color.DEFAULT
+
+    def get_exit_msg(self, S_ID, process_duration):
+        # We include padding to overwrite hanging previews
+        exit_msg_fancy = f"Process '{self.bg_highlight(S_ID, self.label[S_ID])}' finished after {PMU_funcs.dtstr(process_duration)}." + ' ' * self.padding_length
+        exit_msg_plain = f"Process '{self.label[S_ID]}' finished after {PMU_funcs.dtstr(process_duration)}."
+        return (exit_msg_fancy, exit_msg_plain)
 
     def finish_event(self, S_ID):
-        process_label = self.label[S_ID]
+        process_duration = super().finish_event(S_ID)
+        exit_msg_fancy, exit_msg_plain = self.get_exit_msg(S_ID, process_duration)
+
+        self.padding_length -= self.width[S_ID]
+        if len(self.processes) > 1:
+            self.padding_length -= 1
 
         del self.label[S_ID]
         del self.c[S_ID]
         del self.width[S_ID]
         del self.process_pipe_i[S_ID]
 
-        process_duration = super().finish_event(S_ID)
-        return (process_duration, self.get_exit_msg(process_label, process_duration))
+        return (process_duration, exit_msg_fancy, exit_msg_plain)
 
     # ---------------------------- Update methods -----------------------------
 
@@ -110,7 +134,8 @@ class Printable_Semaphor(Semaphor):
 
         N_color = math.floor(self.width[S_ID] * self.processes[S_ID].cur_tau / self.processes[S_ID].tau_max)
 
-        fancy_res = f"[{color.hr[self.c[S_ID]]['bb']}{color.BLACK}{msg[:N_color]}{color.hr[self.c[S_ID]]['bf']}{color.bg.DEFAULT}{msg[N_color:]}{color.DEFAULT}]"
+        fancy_res = '[' + self.bg_highlight(S_ID, msg[:N_color]) + self.fg_highlight(S_ID, msg[N_color:]) + ']'
+        #fancy_res = f"[{color.hr[self.c[S_ID]]['bb']}{color.BLACK}{}{color.hr[self.c[S_ID]]['bf']}{color.bg.DEFAULT}{msg[N_color:]}{color.DEFAULT}]"
         return fancy_res
 
     def progress_bars(self, fancy = True):
