@@ -219,11 +219,14 @@ class Journal():
         else:
             return("| " * n)
 
-    def pre(self, allow_fancy = True, add_progress_bar = False):
+    def pre(self, allow_fancy = True, add_progress_bar = False, enforce_depth = None):
         # prefix for current depth.
 
+        if enforce_depth is None:
+            enforce_depth = self.depth
+
         # The general form is [pipes] [progress bars (in highlight only)]
-        res = self.pipe_stack(self.depth, allow_fancy)
+        res = self.pipe_stack(enforce_depth, allow_fancy)
         if len(self.semaphor.processes) > 0 and add_progress_bar:
             res += self.semaphor.progress_bars(self.fancy_printing and allow_fancy) + " "
         return(res)
@@ -251,9 +254,9 @@ class Journal():
 
     def preview_print(self, msg):
         # If fancy printing is enabled, we always pre-print the last line in bold
-        print(self.pre(add_progress_bar = True) + self.cur_highlight(msg), end="\r")
         self.last_printed_line = msg
         self.last_printed_depth = self.depth
+        print(self.pre(add_progress_bar = True, enforce_depth = self.last_printed_depth) + self.cur_highlight(msg), end="\r")
 
     def reload_preview(self):
         self.preview_print(self.last_printed_line)
@@ -596,7 +599,7 @@ class Journal():
             exit_msg_fancy = " " + semaphor_exit_msg_fancy
             exit_msg_plain = " " + semaphor_exit_msg_plain
         self.depth -= 1
-        self.write("\\_" + exit_msg_fancy, last_routine[1], plain_msg = "\\_" + exit_msg_plain, padding_length = padding_length)
+        self.write(gradual_fg_color[(self.depth + 1) % len(gradual_fg_color)] + "\\_" + color.END + exit_msg_fancy, last_routine[1], plain_msg = "\\_" + exit_msg_plain, padding_length = padding_length)
         if was_it_semaphored:
             return process_duration
 
