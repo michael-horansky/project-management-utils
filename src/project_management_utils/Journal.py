@@ -594,8 +594,7 @@ class Journal():
         if self.fancy_printing and self.verbosity >= last_routine[1]:
             self.write(f"\\_{exit_msg}", last_routine[1], prevent_printing_on_the_fly = True)
             if self.print_on_the_fly:
-                if not was_it_semaphored:
-                    self.commit_last_line() # we don't want to hang the last semaphor update
+                self.commit_last_line() # we don't want to hang the last semaphor update
                 self.preview_print(gradual_fg_color[self.depth % len(gradual_fg_color)] + "\\_" + color.END + exit_msg)
         else:
             self.write(f"\\_{exit_msg}", last_routine[1])
