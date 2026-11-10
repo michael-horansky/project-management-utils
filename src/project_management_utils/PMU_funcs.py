@@ -101,8 +101,9 @@ def dtstr(seconds, max_depth = 2, concise = False, force_width = None, leading =
     # Milliseconds
     num_val = int(round(seconds / 0.001))
     if num_val == 0:
-        return ' ' * force_width
-    leading_str = str(num_val) + get_time_unit(None, concise, num_val)
+        leading_str = ""
+    else:
+        leading_str = str(num_val) + get_time_unit(None, concise, num_val)
     if force_width is None:
         return leading_str
     if len(leading_str) > force_width:
