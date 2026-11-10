@@ -238,7 +238,7 @@ class Journal():
             if plain_msg is None:
                 plain_msg = msg
 
-            self.journal_text += self.pre(False) + agent_plain_pre + msg + "\n"
+            self.journal_text += self.pre(False) + agent_plain_pre + plain_msg + "\n"
             if self.print_on_the_fly and not prevent_printing_on_the_fly:
                 if self.fancy_printing:
                     # We firstly print the last submitted line, and then the preprint of the current line
