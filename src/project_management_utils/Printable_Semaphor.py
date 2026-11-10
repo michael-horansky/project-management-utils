@@ -31,9 +31,7 @@ class Printable_Semaphor(Semaphor):
 
     def create_event(self, label, tau_space, update_on_every_tick = False, c = None, width = 0):
 
-        self.padding_length += max(width, Printable_Semaphor.min_progress_bar_width)
-        if len(self.processes) > 0:
-            self.padding_length += 1
+        self.padding_length += max(width, Printable_Semaphor.min_progress_bar_width) + 3
 
         new_ID = super().create_event(tau_space, update_on_every_tick)
         if c is None or c not in color.hr.keys():
@@ -65,9 +63,7 @@ class Printable_Semaphor(Semaphor):
         process_duration = super().finish_event(S_ID)
         exit_msg_fancy, exit_msg_plain = self.get_exit_msg(S_ID, process_duration)
 
-        self.padding_length -= self.width[S_ID]
-        if len(self.processes) > 1:
-            self.padding_length -= 1
+        self.padding_length -= self.width[S_ID] - 3
 
         del self.label[S_ID]
         del self.c[S_ID]

@@ -260,8 +260,12 @@ class Journal():
 
     # Write method
 
-    def write(self, msg, v = -1, prevent_printing_on_the_fly = False, plain_msg = None, agent = None, padding_length = 0):
+    def write(self, msg, v = -1, prevent_printing_on_the_fly = False, plain_msg = None, agent = None, padding_length = None):
         # Writes a message inside current routine at current depth
+
+        # Only input padding_length manually when the length needs to be reserved before altering the semaphor status (like on finishing semaphor events)
+        if padding_length is None:
+            padding_length = self.semaphor.padding_length
 
         agent_pre, agent_plain_pre = self.get_agent_tag(agent)
 
