@@ -20,6 +20,12 @@ Afterwards, install the module as a library like so:
 python -m pip install -e ./project_management_utils
 ```
 
+You can now import the module as
+
+```console
+import project_management_utils
+```
+
 The installation is editable (```-e``` flag) so that python automatically reads the source files after you update the submodule. Note that for the installation you should be in your virtual environment.
 
 ## Updating the submodule
@@ -42,6 +48,18 @@ git clone --recurse-submodules \[your project repository\]
 This section outlines in brief the functionalities of each module of utils. For more detailed tutorials, please visit the [demo repo](https://github.com/michael-horansky/project-management-utils-demo).
 
 ## Journal
+To use Journals, access the class with
+
+```console
+project_management_utils.Journal
+```
+
+or import it with
+
+```console
+from project_management_utils.Journal import Journal
+```
+
 Structured and annotated log for your script. For examples of major functionalities call Journal.sample_behaviour in an empty script.
 
 ### Structured writing
