@@ -28,7 +28,7 @@ class Printable_Semaphor(Semaphor):
 
     def create_event(self, label, tau_space, update_on_every_tick = False, c = None, width = 20):
         new_ID = super().create_event(tau_space, update_on_every_tick)
-        if c is None or if c not in color.hr.keys():
+        if c is None or c not in color.hr.keys():
             c = 'green' # default
         self.label[new_ID] = label
         self.c[new_ID] = c
