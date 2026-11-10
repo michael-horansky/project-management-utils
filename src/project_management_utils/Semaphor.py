@@ -69,7 +69,7 @@ class ProcessTracker():
 
         return(need_update or self.update_on_every_tick)
 
-    def progress(self, tau_progress):
+    def progress(self, tau_progress = 1):
         # Increases current tau value. Returns True if update needed, False otherwise.
         new_index = self.get_index(self.cur_tau + tau_progress, self.tau_max)
         need_update = new_index != self.cur_tau_index
@@ -82,7 +82,7 @@ class ProcessTracker():
 
         return(need_update or self.update_on_every_tick)
 
-    def overtime(self, tau_overtime):
+    def overtime(self, tau_overtime = 1):
         # Unpredicted workload was done. Increases both tau and max_tau by tau_overtime. Returns True if update needed, False otherwise.
         new_index = self.get_index(self.cur_tau + tau_overtime, self.tau_max + tau_overtime)
         need_update = new_index != self.cur_tau_index
@@ -143,12 +143,12 @@ class Semaphor():
             raise Exception(f"  ERROR: Semaphor '{event_ID}' does not exist.")
         return self.processes[event_ID].update(tau)
 
-    def progress(self, event_ID, tau_progress):
+    def progress(self, event_ID, tau_progress = 1):
         if event_ID not in self.processes.keys():
             raise Exception(f"  ERROR: Semaphor '{event_ID}' does not exist.")
         return self.processes[event_ID].progress(tau_progress)
 
-    def overtime(self, event_ID, tau_overtime):
+    def overtime(self, event_ID, tau_overtime = 1):
         if event_ID not in self.processes.keys():
             raise Exception(f"  ERROR: Semaphor '{event_ID}' does not exist.")
         return self.processes[event_ID].overtime(tau_overtime)

@@ -536,40 +536,11 @@ class Journal():
         if semaphored:
             # We register the new event
             new_ID = self.semaphor.create_event(**kwargs)
-            """if self.verbosity >= max(v, self.get_stack_v()):
-                s_nl = False
-                if "newline" in kwargs:
-                    s_nl = kwargs["newline"]
-
-                if self.fancy_printing:
-                    tau_space = kwargs["tau_space"]
-                else:
-                    # We transform tau_space into a special array
-                    smallest_tau = kwargs["tau_space"][1]
-                    largest_tau = kwargs["tau_space"][-1]
-
-                    tau_coef = pow(largest_tau / smallest_tau, 1 / (self.plain_semaphor_N + 1))
-
-                    tau_space = [0, smallest_tau]
-
-                    for i in range(self.plain_semaphor_N):
-                        tau_space.append(tau_space[-1] * tau_coef)
-                    tau_space.append(largest_tau)
-
-                semaphor_event_ID, semaphor_header = self.semaphor.create_event(tau_space, header, s_nl)
-                self.cur_semaphor_event = semaphor_event_ID
-                self.write(semaphor_header, v, agent = agent)"""
 
         self.routine_stack.append([header, max(v, self.get_stack_v()), agent, new_ID])
 
         self.write(header, v, agent = agent)
         self.depth += 1
-
-        """if semaphored and self.fancy_printing:
-            # We create the placeholder line
-            self.write(header + " waiting for the first event...", v)"""
-
-        #self.routine_stack[-1][2] = agent
 
         if semaphored:
             return new_ID
@@ -590,12 +561,12 @@ class Journal():
             # We updated. Time to flush the highlight
             self.preview_print(self.last_printed_line)
 
-    def semaphor_progress(self, tau_progress, S_ID = None):
+    def semaphor_progress(self, tau_progress = 1, S_ID = None):
         if self.semaphor.progress(self.get_standard_S_ID(S_ID), tau_progress):
             # We updated. Time to flush the highlight
             self.preview_print(self.last_printed_line)
 
-    def semaphor_overtime(self, tau_overtime, S_ID = None):
+    def semaphor_overtime(self, tau_overtime = 1, S_ID = None):
         if self.semaphor.overtime(self.get_standard_S_ID(S_ID), tau_overtime):
             # We updated. Time to flush the highlight
             self.preview_print(self.last_printed_line)

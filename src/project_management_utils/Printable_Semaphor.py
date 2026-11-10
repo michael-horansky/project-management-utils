@@ -58,11 +58,11 @@ class Printable_Semaphor(Semaphor):
         self.process_pipe_i[S_ID] = (self.process_pipe_i[S_ID] + 1) % len(Printable_Semaphor.spinning_pipes)
         return super().update(S_ID, tau)
 
-    def update(self, S_ID, tau_progress):
+    def update(self, S_ID, tau_progress = 1):
         self.process_pipe_i[S_ID] = (self.process_pipe_i[S_ID] + 1) % len(Printable_Semaphor.spinning_pipes)
         return super().progress(S_ID, tau_progress)
 
-    def overtime(self, S_ID, tau_overtime):
+    def overtime(self, S_ID, tau_overtime = 1):
         self.process_pipe_i[S_ID] = (self.process_pipe_i[S_ID] + 1) % len(Printable_Semaphor.spinning_pipes)
         return super().overtime(S_ID, tau_overtime)
 
@@ -73,9 +73,6 @@ class Printable_Semaphor(Semaphor):
         if self.processes[S_ID].ETA is None:
             # No way to estimate the ETA, as we're still waiting for the first event
             return 'unknown'
-        msg = PMU_funcs.dtstr(self.processes[S_ID].ETA, concise = True, force_width = 7)
-        if len(msg) != 7:
-            print(f"\n\nERROR! justifying dtstr didnt work for s = {self.processes[S_ID].ETA}\n\n")
         return PMU_funcs.dtstr(self.processes[S_ID].ETA, concise = True, force_width = 7)
 
     def get_percentage_str(self, S_ID):
