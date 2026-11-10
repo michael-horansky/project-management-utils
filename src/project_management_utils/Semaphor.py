@@ -56,12 +56,12 @@ class ProcessTracker():
             return(self.N_div) # the final index, equivalent to "finished"
         return(math.floor(x * self.N_div / max_x))
 
-    def update(self, x):
+    def update(self, tau):
         # Updates current tau value. Returns True if update needed, False otherwise.
-        new_index = self.get_index(x, self.tau_max)
+        new_index = self.get_index(tau, self.tau_max)
         need_update = new_index != self.cur_tau_index
 
-        self.cur_tau = x
+        self.cur_tau = tau
         self.cur_tau_index = new_index
 
         if need_update or self.update_on_every_tick:
@@ -69,12 +69,26 @@ class ProcessTracker():
 
         return(need_update or self.update_on_every_tick)
 
-    def overtime(self, delta_max):
-        # Stretches the bench by adding overtime. Returns True if update needed, False otherwise.
-        new_index = self.get_index(self.cur_tau, self.tau_max + delta_max)
+    def progress(self, tau_progress):
+        # Increases current tau value. Returns True if update needed, False otherwise.
+        new_index = self.get_index(self.cur_tau + tau_progress, self.tau_max)
         need_update = new_index != self.cur_tau_index
 
-        self.tau_max += delta_max
+        self.cur_tau += tau_progress
+        self.cur_tau_index = new_index
+
+        if need_update or self.update_on_every_tick:
+            self.update_ETA()
+
+        return(need_update or self.update_on_every_tick)
+
+    def overtime(self, tau_overtime):
+        # Unpredicted workload was done. Increases both tau and max_tau by tau_overtime. Returns True if update needed, False otherwise.
+        new_index = self.get_index(self.cur_tau + tau_overtime, self.tau_max + tau_overtime)
+        need_update = new_index != self.cur_tau_index
+
+        self.cur_tau += tau_overtime
+        self.tau_max += tau_overtime
         self.cur_tau_index = new_index
 
         if need_update or self.update_on_every_tick:
@@ -127,12 +141,17 @@ class Semaphor():
     def update(self, event_ID, tau):
         if event_ID not in self.tau_space.keys():
             raise Exception(f"  ERROR: Semaphor '{event_ID}' does not exist.")
-        return(self.processes[event_ID].update(tau))
+        return self.processes[event_ID].update(tau)
+
+    def progress(self, event_ID, tau_progress):
+        if event_ID not in self.tau_space.keys():
+            raise Exception(f"  ERROR: Semaphor '{event_ID}' does not exist.")
+        return self.processes[event_ID].progress(tau_progress)
 
     def overtime(self, event_ID, tau_overtime):
         if event_ID not in self.tau_space.keys():
             raise Exception(f"  ERROR: Semaphor '{event_ID}' does not exist.")
-        return(self.processes[event_ID].overtime(tau_overtime))
+        return self.processes[event_ID].overtime(tau_overtime)
 
 
 

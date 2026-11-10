@@ -66,7 +66,6 @@ class Journal():
 
     # --------------------------- Class properties ----------------------------
 
-    semaphor_prefixes = ["| ", "/ ", "- ", "\\ "]
     time_format = "%H:%M:%S" # Print time with
 
     answer_strings = {
@@ -177,7 +176,7 @@ class Journal():
         # Typically, writes within subroutines are one level of verbosity higher than the subroutine itself
 
         self.journal_text = ""
-        self.routine_stack = [] # every routine is [header, max required verbosity, agent]
+        self.routine_stack = [] # every routine is [header, max required verbosity, agent, associated semaphor ID]
         self.verbosity = verbosity # The higher the verbosity, the more in detail the Journal is
         self.print_on_the_fly = print_on_the_fly # If True, printing to terminal happens concurrently
         self.depth = 0
@@ -220,12 +219,12 @@ class Journal():
         else:
             return("| " * n)
 
-    def pre(self, allow_fancy = True):
+    def pre(self, allow_fancy = True, add_progress_bar = False):
         # prefix for current depth.
 
-        # The general form is [pipes] [progress bars]
+        # The general form is [pipes] [progress bars (in highlight only)]
         res = self.pipe_stack(self.depth, allow_fancy)
-        if len(self.semaphor.processes) > 0:
+        if len(self.semaphor.processes) > 0 and add_progress_bar:
             res += self.semaphor.progress_bars(self.fancy_printing and allow_fancy) + " "
         return(res)
 
@@ -252,15 +251,15 @@ class Journal():
 
     def preview_print(self, msg):
         # If fancy printing is enabled, we always pre-print the last line in different colour
-        print(self.pre() + self.cur_highlight(msg), end="\r")
+        print(self.pre(add_progress_bar = True) + self.cur_highlight(msg), end="\r")
         self.last_printed_line = msg
         self.last_printed_depth = self.depth
 
-    def spinning_pipe(self):
+    """def spinning_pipe(self):
         if self.fancy_printing:
             return(gradual_fg_color[(self.depth - 1) % len(gradual_fg_color)] + Journal.semaphor_prefixes[self.cur_semaphor_prefix_id] + color.END)
         else:
-            return(Journal.semaphor_prefixes[self.cur_semaphor_prefix_id])
+            return(Journal.semaphor_prefixes[self.cur_semaphor_prefix_id])"""
 
     # Write method
 
@@ -523,13 +522,21 @@ class Journal():
     def enter(self, header, v = -1, semaphored = False, agent = None, **kwargs):
         # header: human-readable name of routine
         # v: verbosity requirement
+
         # semaphored: if True, the routine is semaphored
-        # if semaphored, kwargs are provided to semaphor
+        # if semaphored, the following kwargs are needed:
+        #   -label [str]: Short identification of the process
+        #   -tau_space [number or tuple]: specifies tau_max and, if provided, number of divisions.
+        #   -update_on_every_tick [bool] (default False): If True, every process update flushes the output. If False, only changes in divisions flush the output.
+        #   -c [str] (default 'green'): keyword for the progress bar color.
+        #   -width [int] (default 20): width of the progress bar.
 
-        self.routine_stack.append([header, max(v, self.get_stack_v()), None])
 
+        new_ID = None
         if semaphored:
-            if self.verbosity >= max(v, self.get_stack_v()):
+            # We register the new event
+            new_ID = self.semaphor.create_event(**kwargs)
+            """if self.verbosity >= max(v, self.get_stack_v()):
                 s_nl = False
                 if "newline" in kwargs:
                     s_nl = kwargs["newline"]
@@ -551,32 +558,48 @@ class Journal():
 
                 semaphor_event_ID, semaphor_header = self.semaphor.create_event(tau_space, header, s_nl)
                 self.cur_semaphor_event = semaphor_event_ID
-                self.write(semaphor_header, v, agent = agent)
+                self.write(semaphor_header, v, agent = agent)"""
 
-        else:
-            self.write(header, v, agent = agent)
+        self.routine_stack.append([header, max(v, self.get_stack_v()), agent, new_ID])
+
+        self.write(header, v, agent = agent)
         self.depth += 1
 
-        if semaphored and self.fancy_printing:
+        """if semaphored and self.fancy_printing:
             # We create the placeholder line
-            self.write(header + " waiting for the first event...", v)
+            self.write(header + " waiting for the first event...", v)"""
 
-        self.routine_stack[-1][2] = agent
+        #self.routine_stack[-1][2] = agent
 
-    def update_semaphor_event(self, tau):
-        if self.print_on_the_fly and self.cur_semaphor_event is not None:
-            msg = self.semaphor.update(self.cur_semaphor_event, tau)
-            if msg is not None:
-                # We don't write update messages into the log which meant to be saved, only to print on the fly
-                if self.fancy_printing:
-                    print(self.pipe_stack(self.depth - 1) + self.spinning_pipe() + self.cur_highlight(msg), end='\r')
-                    self.last_printed_line = msg
-                    self.cur_semaphor_prefix_id = (self.cur_semaphor_prefix_id + 1) % len(Journal.semaphor_prefixes)
-                else:
-                    print(self.pipe_stack(self.depth) + msg)
-            elif self.fancy_printing:
-                # We just reprint the last statement with a rotated pipe
-                print(self.pipe_stack(self.depth - 1) + self.spinning_pipe() + self.cur_highlight(self.last_printed_line), end='\r')
+        if semaphored:
+            return new_ID
+
+    # ------------------------ Semaphor update methods ------------------------
+
+    def get_standard_S_ID(self, S_ID):
+        if S_ID is None:
+            # If there is only one semaphor event, this is fine. Otherwise, this is an error.
+            if len(self.semaphor.processes) == 1:
+                return list(self.semaphor.processes.keys())[0]
+            else:
+                raise Exception("Semaphor process ID must be provided on update if more than one process exists.")
+        return S_ID
+
+    def semaphor_update(self, tau, S_ID = None):
+        if self.semaphor.update(self.get_standard_S_ID(S_ID), tau):
+            # We updated. Time to flush the highlight
+            self.preview_print(self.last_printed_line)
+
+    def semaphor_progress(self, tau_progress, S_ID = None):
+        if self.semaphor.progress(self.get_standard_S_ID(S_ID), tau_progress):
+            # We updated. Time to flush the highlight
+            self.preview_print(self.last_printed_line)
+
+    def semaphor_overtime(self, tau_overtime, S_ID = None):
+        if self.semaphor.overtime(self.get_standard_S_ID(S_ID), tau_overtime):
+            # We updated. Time to flush the highlight
+            self.preview_print(self.last_printed_line)
+
 
     def exit(self, end_message = None):
         # If popping a semaphor, it will return the duration in ms
@@ -589,10 +612,10 @@ class Journal():
             exit_msg = ""
 
         # check if it's semaphored
-        was_it_semaphored = self.cur_semaphor_event is not None
+        was_it_semaphored = last_routine[3] is not None
         if was_it_semaphored:
             # We exit the semaphored routine
-            process_duration, semaphor_exit_msg = self.semaphor.finish_event(self.cur_semaphor_event, end_message)
+            process_duration, semaphor_exit_msg = self.semaphor.finish_event(last_routine[3])
             self.cur_semaphor_event = None
             self.cur_semaphor_prefix_id = 0
             exit_msg = " " + semaphor_exit_msg
@@ -606,7 +629,7 @@ class Journal():
         else:
             self.write(f"\\_{exit_msg}", last_routine[1])
         if was_it_semaphored:
-            return(process_duration)
+            return process_duration
 
     # Interactive element
 
