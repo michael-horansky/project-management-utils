@@ -249,21 +249,14 @@ class Journal():
             print(self.pipe_stack(self.last_printed_depth) + self.last_printed_line)
             self.last_printed_line = None
 
-    def preview_print(self, msg, msg_length):
-        # If fancy printing is enabled, we always pre-print the last line in different colour
-        msg_prefix, prefix_length = self.pre(add_progress_bar = True)
-        print( + self.cur_highlight(msg), end="\r")
+    def preview_print(self, msg):
+        # If fancy printing is enabled, we always pre-print the last line in bold
+        print(self.pre(add_progress_bar = True) + self.cur_highlight(msg), end="\r")
         self.last_printed_line = msg
         self.last_printed_depth = self.depth
 
     def reload_preview(self):
         self.preview_print(self.last_printed_line)
-
-    """def spinning_pipe(self):
-        if self.fancy_printing:
-            return(gradual_fg_color[(self.depth - 1) % len(gradual_fg_color)] + Journal.semaphor_prefixes[self.cur_semaphor_prefix_id] + color.END)
-        else:
-            return(Journal.semaphor_prefixes[self.cur_semaphor_prefix_id])"""
 
     # Write method
 
