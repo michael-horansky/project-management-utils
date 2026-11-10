@@ -92,7 +92,7 @@ class Journal():
         sample_journal.enter("Testing semaphors...")
         sample_journal.write("Semaphor is used to update the user periodically when the program spends a long time on one task.")
 
-        sample_journal.enter("Calculating gibberish", semaphored = True, label = 'Babble', tau_space = list(range(101)))
+        sample_journal.enter("Calculating gibberish", semaphored = True, label = 'Babble', tau_space = (100, 100))
 
         for a in range(10):
             for b in range(10):
