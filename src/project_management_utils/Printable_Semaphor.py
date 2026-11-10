@@ -78,8 +78,8 @@ class Printable_Semaphor(Semaphor):
     def get_percentage_str(self, S_ID):
         if self.processes[S_ID].N_div <= 100:
             # Integer percentage
-            return f"{int(self.processes[S_ID].cur_tau / self.processes[S_ID].tau_max * 100):d}%"
-        return f"{self.processes[S_ID].cur_tau / self.processes[S_ID].tau_max:.1%}"
+            return f"{int(self.processes[S_ID].cur_tau / self.processes[S_ID].tau_max * 100):d}%".ljust(3)
+        return f"{self.processes[S_ID].cur_tau / self.processes[S_ID].tau_max:.1%}".ljust(5)
 
 
     def progress_bar(self, S_ID, fancy = True):
