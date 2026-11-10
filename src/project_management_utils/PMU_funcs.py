@@ -86,7 +86,7 @@ def dtstr(seconds, max_depth = 2, concise = False, force_width = None, leading =
                 if max_depth == 1:
                     return leading_str
                 else:
-                    return leading_str + dtstr(remainder, max_depth - 1, concise, None, False)
+                    return leading_str + trailing_delim + dtstr(remainder, max_depth - 1, concise, None, False)
             if len(leading_str) > force_width:
                 if leading:
                     # We crop aggressively
