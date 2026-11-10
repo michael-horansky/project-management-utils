@@ -42,6 +42,13 @@ time_units = [
     ]
 
 def get_time_unit(i, concise, val):
+    if i is None:
+        # ms
+        if concise:
+            return 'ms'
+        else:
+            return ' ms'
+
     if concise:
         return time_units[i]['concise']
     else:
@@ -92,10 +99,20 @@ def dtstr(seconds, max_depth = 2, concise = False, force_width = None, leading =
             else:
                 return leading_str + dtstr(remainder, max_depth - 1, concise, force_width - len(leading_str), False)
     # Milliseconds
-    if concise:
-        return(f"{int(round(seconds / 0.001))}ms")
-    else:
-        return(f"{int(round(seconds / 0.001))} ms")
+    num_val = int(round(seconds / 0.001))
+    if num_val == 0:
+        return ' ' * force_width
+    leading_str = str(num_val) + get_time_unit(None, concise, num_val)
+    if force_width is None:
+        return leading_str
+    if len(leading_str) > force_width:
+        if leading:
+            # We crop aggressively
+            return leading_str[:force_width]
+        else:
+            # We cap it here
+            return ' ' * force_width
+    return leading_str.ljust(force_width)
 
 def tsrt(timestamp, time_format = "%H:%M:%S"):
     # t to string
