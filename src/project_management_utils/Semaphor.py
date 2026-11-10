@@ -21,6 +21,8 @@ class ProcessTracker():
         # Sim time management
         self.tau_max, self.N_div = self.sanitise_tau_space(tau_space)
 
+        print(f"\n\n N_div = {self.N_div} \n\n")
+
         self.cur_tau = 0.0 # We mark the beginning
         self.cur_tau_index = 0
 
