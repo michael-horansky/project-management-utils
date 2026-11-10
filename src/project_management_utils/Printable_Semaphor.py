@@ -17,7 +17,7 @@ import math
 class Printable_Semaphor(Semaphor):
 
     spinning_pipes = ["|", "/", "-", "\\"]
-    min_progress_bar_width = 30
+    min_progress_bar_width = 25
 
     def __init__(self, time_format = "%H:%M:%S"):
         super().__init__() # Initialises abstract Semaphor
@@ -111,6 +111,9 @@ class Printable_Semaphor(Semaphor):
     def progress_bar(self, S_ID, fancy = True):
         # Prints a progress bar for a given semaphor ID
         # Format: label | percentage | ETA
+
+        # NOTE: With nice padding everywhere and decimal progress percentage,
+        # at minimal width the label has space for 5 characters.
 
         ETA_str = self.get_ETA_str(S_ID)
         percentage_str = self.get_percentage_str(S_ID)
