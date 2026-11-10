@@ -25,6 +25,7 @@ class Printable_Semaphor(Semaphor):
         self.c = {}
         self.width = {}
         self.process_pipe_i = {}
+        self.in_overtime = {}
         self.time_format = time_format
 
         self.padding_length = 0
@@ -40,6 +41,7 @@ class Printable_Semaphor(Semaphor):
         self.c[new_ID] = c
         self.width[new_ID] = max(width, Printable_Semaphor.min_progress_bar_width)
         self.process_pipe_i[new_ID] = 0
+        self.in_overtime[new_ID] = False
 
 
 
@@ -47,11 +49,21 @@ class Printable_Semaphor(Semaphor):
 
     # ----------------------- String formatting methods -----------------------
 
-    def bg_highlight(self, S_ID, msg):
-        return color.hr[self.c[S_ID]]['bb'] + color.BLACK + msg + color.DEFAULT + color.bg.DEFAULT
+    def get_color_palette(self, iden):
+        if iden in color.hr.keys():
+            return color.hr[iden]
+        elif iden in self.processes.keys():
+            return color.hr[self.c[iden]]
+        else:
+            raise Exception(f"Unknown color identifier: {iden}")
 
-    def fg_highlight(self, S_ID, msg):
-        return color.hr[self.c[S_ID]]['bf'] + msg + color.DEFAULT
+    def bg_highlight(self, iden, msg, bright = True):
+        b_pre = 'b' if bright else ''
+        return self.get_color_palette(iden)[b_pre + 'b'] + (color.BLACK if bright else color.BRIGHT_WHITE) + msg + color.DEFAULT + color.bg.DEFAULT
+
+    def fg_highlight(self, iden, msg, bright = True):
+        b_pre = 'b' if bright else ''
+        return self.get_color_palette(iden)[b_pre + 'f'] + msg + color.DEFAULT
 
     def get_exit_msg(self, S_ID, process_duration):
         # We include padding to overwrite hanging previews
@@ -76,18 +88,21 @@ class Printable_Semaphor(Semaphor):
 
     def update(self, S_ID, tau):
         out = super().update(S_ID, tau)
+        self.in_overtime[S_ID] = False
         if out:
             self.process_pipe_i[S_ID] = (self.process_pipe_i[S_ID] + 1) % len(Printable_Semaphor.spinning_pipes)
         return out
 
     def progress(self, S_ID, tau_progress = 1):
         out = super().progress(S_ID, tau_progress)
+        self.in_overtime[S_ID] = False
         if out:
             self.process_pipe_i[S_ID] = (self.process_pipe_i[S_ID] + 1) % len(Printable_Semaphor.spinning_pipes)
         return out
 
     def overtime(self, S_ID, tau_overtime = 1):
         out = super().overtime(S_ID, tau_overtime)
+        self.in_overtime[S_ID] = True
         if out:
             self.process_pipe_i[S_ID] = (self.process_pipe_i[S_ID] + 1) % len(Printable_Semaphor.spinning_pipes)
         return out
@@ -138,7 +153,8 @@ class Printable_Semaphor(Semaphor):
         # We insert the colors.
         N_color = math.floor(self.width[S_ID] * self.processes[S_ID].cur_tau / self.processes[S_ID].tau_max)
 
-        fancy_res = '[' + self.bg_highlight(S_ID, msg[:N_color]) + self.fg_highlight(S_ID, msg[N_color:]) + ']'
+        bracket_highlight = 'red' if self.in_overtime[S_ID] else 'green'
+        fancy_res = self.bg_highlight(bracket_highlight, '[', False) + self.bg_highlight(S_ID, msg[:N_color]) + self.fg_highlight(S_ID, msg[N_color:]) + self.bg_highlight(bracket_highlight, ']', False)
         return fancy_res
 
     def progress_bars(self, fancy = True):
