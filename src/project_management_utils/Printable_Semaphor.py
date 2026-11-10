@@ -17,6 +17,7 @@ import math
 class Printable_Semaphor(Semaphor):
 
     spinning_pipes = ["|", "/", "-", "\\"]
+    min_progress_bar_width = 30
 
     def __init__(self, time_format = "%H:%M:%S"):
         super().__init__() # Initialises abstract Semaphor
@@ -26,13 +27,13 @@ class Printable_Semaphor(Semaphor):
         self.process_pipe_i = {}
         self.time_format = time_format
 
-    def create_event(self, label, tau_space, update_on_every_tick = False, c = None, width = 20):
+    def create_event(self, label, tau_space, update_on_every_tick = False, c = None, width = 0):
         new_ID = super().create_event(tau_space, update_on_every_tick)
         if c is None or c not in color.hr.keys():
             c = 'green' # default
         self.label[new_ID] = label
         self.c[new_ID] = c
-        self.width[new_ID] = max(width, 20)
+        self.width[new_ID] = max(width, Printable_Semaphor.min_progress_bar_width)
         self.process_pipe_i[new_ID] = 0
 
         return(new_ID)
@@ -72,7 +73,7 @@ class Printable_Semaphor(Semaphor):
         if self.processes[S_ID].ETA is None:
             # No way to estimate the ETA, as we're still waiting for the first event
             return 'unknown'
-        return PMU_funcs.dtstr(self.processes[S_ID].ETA, concise = True)
+        return PMU_funcs.dtstr(self.processes[S_ID].ETA, concise = True, force_width = 7)
 
     def get_percentage_str(self, S_ID):
         if self.processes[S_ID].N_div <= 100:
