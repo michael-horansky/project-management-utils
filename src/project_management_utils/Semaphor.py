@@ -4,166 +4,135 @@
 # Manages asynchronous progress bars and calculates estimated times of finish.
 # Auxiliary class for Journal; does not manage printing at all.
 
+from numbers import Number
 import time
+import numpy as np
+import math
 
-def dtstr(seconds, max_depth = 2):
-    # Dynamically chooses the right format
-    # max_depth is the number of different measurements (e.g. max_depth = 2: "2 days 5 hours")
-    if seconds >= 60 * 60 * 24:
-        # Days
-        if max_depth == 1:
-            return(f"{int(round(seconds / (60 * 60 * 24)))} days")
-        remainder = seconds % (60 * 60 * 24)
-        days = int((seconds - remainder) / (60 * 60 * 24))
-        return(f"{days} days {dtstr(remainder, max_depth - 1)}")
-    if seconds >= 60 * 60:
-        # Hours
-        if max_depth == 1:
-            return(f"{int(round(seconds / (60 * 60)))} hours")
-        remainder = seconds % (60 * 60)
-        hours = int((seconds - remainder) / (60 * 60))
-        return(f"{hours} hours {dtstr(remainder, max_depth - 1)}")
-    if seconds >= 60:
-        # Minutes
-        if max_depth == 1:
-            return(f"{int(round(seconds / 60))} min")
-        remainder = seconds % (60)
-        minutes = int((seconds - remainder) / (60))
-        return(f"{minutes} min {dtstr(remainder, max_depth - 1)}")
-    if seconds >= 1:
-        # Seconds
-        if max_depth == 1:
-            return(f"{int(round(seconds))} sec")
-        remainder = seconds % (1)
-        secs = int((seconds - remainder))
-        return(f"{secs} sec {dtstr(remainder, max_depth - 1)}")
-    # Milliseconds
-    return(f"{int(round(seconds / 0.001))} ms")
+class ProcessTracker():
+    # Tracks a single process
+    def __init__(self, tau_space, update_on_every_tick):
+        # "Tau" is simulation time, "t" is real time
+
+        # Real time management
+        self.t_start = time.time() # current timestamp
+        self.ETA = None # Only calculable when cur_tau > 0. This is the time interval expected to pass before finish, in seconds.
+
+        # Sim time management
+        self.tau_max, self.N_div = self.sanitise_tau_space(tau_space)
+
+        self.cur_tau = 0.0 # We mark the beginning
+        self.cur_tau_index = 0
+
+        # If update_on_every_tick, an update signal is sent out every time tau or tau_max update.
+        # Otherwise, an update signal is only sent out if cur_tau_index changes
+        self.update_on_every_tick = update_on_every_tick
+
+    def sanitise_tau_space(self, tau_space, default_N_div = 1000):
+        # Normalises tau space into tau_max, N_div.
+        # Allowed values:
+        #   -tuple of length 2. First element is interpreted as max tau value, second element as number of divisions.
+        #   -number. Interpreted as max tau value. Number of divisions defaults to the provided default value or 1000.
+
+        if isinstance(tau_space, tuple):
+            if len(tau_space) == 2:
+                return(tau_space)
+            else:
+                raise ValueError("Tuple tau_space must have a length of 2.")
+
+        if isinstance(tau_space, Number):
+            return(tau_space, default_N_div)
+
+        raise TypeError(f"Unexpected tau_space type: {type(tau_space)}")
+
+    def get_index(self, x, max_x):
+        if self.update_on_every_tick:
+            # No need to track index, we remain at default value
+            return(0)
+
+        if x <= 0:
+            return(0)
+        if x >= max_x:
+            return(self.N_div) # the final index, equivalent to "finished"
+        return(math.floor(x * self.N_div / max_x))
+
+    def update(self, x):
+        # Updates current tau value. Returns True if update needed, False otherwise.
+        new_index = self.get_index(x, self.tau_max)
+        need_update = new_index != self.cur_tau_index
+
+        self.cur_tau = x
+        self.cur_tau_index = new_index
+
+        if need_update or self.update_on_every_tick:
+            self.update_ETA()
+
+        return(need_update or self.update_on_every_tick)
+
+    def overtime(self, delta_max):
+        # Stretches the bench by adding overtime. Returns True if update needed, False otherwise.
+        new_index = self.get_index(self.cur_tau, self.tau_max + delta_max)
+        need_update = new_index != self.cur_tau_index
+
+        self.tau_max += delta_max
+        self.cur_tau_index = new_index
+
+        if need_update or self.update_on_every_tick:
+            self.update_ETA()
+
+        return(need_update or self.update_on_every_tick)
+
+    def update_ETA(self):
+        if self.cur_tau == 0.0:
+            self.ETA = None
+        elif self.cur_tau >= self.tau_max:
+            self.ETA = 0
+        else:
+            self.ETA = (time.time() - self.t_start) * (self.tau_max / self.cur_tau - 1)
+
+
 
 class Semaphor():
 
-    def __init__(self, time_format = "%H:%M:%S", print_directly = True):
-        self.time_format = time_format
-        self.print_directly = print_directly
+    def __init__(self):
         self.N_events = 0
 
-        # "Tau" is simulation time, "t" is real time
-        self.tau_space = {}
-        self.start_tau = {}
-        self.start_time = {}
-        self.next_flag_tau_index = {}
-        self.ETA = {}
+        self.processes = {}
 
-        self.message = {}
-        self.max_msg_len = {}
-        self.newline = {}
+    # --------------------------- internal methods ----------------------------
 
-    def create_event(self, tau_space, message, newline = False):
+
+
+    def create_event(self, tau_space, update_on_every_tick = False):
         # newline should be set to True for nested events, False for the innermost events or non-nested events
 
         # New ID
         new_ID = f"S_EVENT_{self.N_events}"
         self.N_events += 1
 
-        self.tau_space[new_ID] = tau_space
-        self.start_tau[new_ID] = tau_space[0]
-        self.start_time[new_ID] = time.time()
-        self.next_flag_tau_index[new_ID] = 1
-        self.ETA[new_ID] = None
+        self.processes[new_ID] = ProcessTracker(tau_space, update_on_every_tick)
+        return(new_ID)
 
-        self.message[new_ID] = message
-        self.max_msg_len[new_ID] = 0
-        self.newline[new_ID] = newline
-
-        if self.print_directly:
-            print(f"{message} begins at {time.strftime(self.time_format, time.localtime( self.start_time[new_ID]))}")
-        return(new_ID, f"{message} begins at {time.strftime(self.time_format, time.localtime( self.start_time[new_ID]))}")
-
-    def finish_event(self, event_ID, final_message = None):
+    def finish_event(self, event_ID):
         # Returns the duration in ms
-        if event_ID not in self.tau_space.keys():
-            #print(f"  ERROR: Semaphor {event_ID} does not exist.")
-            return(-1)
-        if final_message is None:
-            final_message = self.message[event_ID]
+        if event_ID not in self.processes.keys():
+            raise Exception(f"  ERROR: Semaphor '{event_ID}' does not exist.")
 
-        process_duration = time.time() - self.start_time[event_ID]
+        process_duration = time.time() - self.processes[event_ID].t_start
 
-        msg = f"{final_message} finished at {time.strftime(self.time_format, time.localtime( time.time()))} (duration {dtstr(process_duration)})"
-        if len(msg) < self.max_msg_len[event_ID]:
-            # padding
-            msg += " " * (self.max_msg_len[event_ID] - len(msg))
-        del self.tau_space[event_ID]
-        del self.start_tau[event_ID]
-        del self.start_time[event_ID]
-        del self.next_flag_tau_index[event_ID]
-        del self.ETA[event_ID]
+        del self.processes[event_ID]
 
-        del self.message[event_ID]
-        del self.max_msg_len[event_ID]
-        del self.newline[event_ID]
-        if self.print_directly:
-            print(msg)
-            return(process_duration)
-        else:
-            return(process_duration, msg)
+        return(process_duration)
 
     def update(self, event_ID, tau):
         if event_ID not in self.tau_space.keys():
-            #print(f"  ERROR: Semaphor {event_ID} does not exist.")
-            if self.print_directly:
-                print(f"ERROR: Semaphor {event_ID} does not exist.")
-                return(-1)
-            else:
-                return(f"ERROR: Semaphor {event_ID} does not exist.")
-        # check if semaphor finished
-        if self.next_flag_tau_index[event_ID] >= len(self.tau_space[event_ID]):
-            if self.newline[event_ID]:
-                if self.print_directly:
-                    print("Semaphor reached the final flagged timestamp. No further semaphor update necessary.")
-                    return(0)
-                else:
-                    return("Semaphor reached the final flagged timestamp. No further semaphor update necessary.")
-            else:
-                msg = "Semaphor reached the final flagged timestamp. No further semaphor update necessary."
-                if len(msg) < self.max_msg_len[event_ID]:
-                    # padding
-                    msg += " " * (self.max_msg_len[event_ID] - len(msg))
-                if self.print_directly:
-                    print(msg, end='\r')
-                    return(0)
-                else:
-                    return(msg)
-        if tau >= self.tau_space[event_ID][self.next_flag_tau_index[event_ID]]:
-            # We find the next smallest unreached semaphor flag
-            tau_index_new = self.next_flag_tau_index[event_ID]
-            while(self.tau_space[event_ID][tau_index_new] <= tau):
-                tau_index_new += 1
-                if tau_index_new >= len(self.tau_space[event_ID]):
-                    break
-            self.next_flag_tau_index[event_ID] = tau_index_new
-            progress_fraction = (self.tau_space[event_ID][tau_index_new - 1] - self.start_tau[event_ID]) / (self.tau_space[event_ID][-1] - self.start_tau[event_ID])
-            ETA = time.strftime(self.time_format, time.localtime( (time.time()-self.start_time[event_ID]) / progress_fraction + self.start_time[event_ID] ))
+            raise Exception(f"  ERROR: Semaphor '{event_ID}' does not exist.")
+        return(self.processes[event_ID].update(tau))
 
-            if self.newline[event_ID]:
-                if self.print_directly:
-                    print(f"{self.message[event_ID]}: {str(int(100 * progress_fraction)).zfill(2)}% done; est. time of finish: {ETA} (sim. t = {tau:.2f})")
-                    return(0)
-                else:
-                    return(f"{self.message[event_ID]}: {str(int(100 * progress_fraction)).zfill(2)}% done; est. time of finish: {ETA} (sim. t = {tau:.2f})")
-            else:
-                msg = f"{self.message[event_ID]}: {str(int(100 * progress_fraction)).zfill(2)}% done; est. time of finish: {ETA} (sim. t = {tau:.2f})"
-                if len(msg) < self.max_msg_len[event_ID]:
-                    # padding
-                    msg += " " * (self.max_msg_len[event_ID] - len(msg))
-                self.max_msg_len[event_ID] = len(msg)
-
-                if self.print_directly:
-                    print(msg, end='\r')
-                    return(0)
-                else:
-                    return(msg)
-        return(None)
+    def overtime(self, event_ID, tau_overtime):
+        if event_ID not in self.tau_space.keys():
+            raise Exception(f"  ERROR: Semaphor '{event_ID}' does not exist.")
+        return(self.processes[event_ID].overtime(tau_overtime))
 
 
 

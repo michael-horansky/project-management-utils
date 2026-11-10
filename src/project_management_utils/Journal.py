@@ -1,5 +1,7 @@
+import .PMU_funcs
+
 from .color import color
-from .Semaphor import Semaphor
+from .Printable_Semaphor import Printable_Semaphor
 
 # -----------------------------------------------------------------------------
 # -------------------------- Typographical constants --------------------------
@@ -56,56 +58,16 @@ reverse = '\033[07m'
         lightgrey = '\033[47m'
 """
 
-def st(a, w):
-    if len(str(a)) >= w:
-        return(str(a)[:w]) # we trim
-    else:
-        diff = w - len(str(a))
-        return(" " * int(diff // 2) + str(a) + " " * int(diff - diff // 2))
-
-def _dtstr(seconds, max_depth = 2):
-    # Dynamically chooses the right format
-    # max_depth is the number of different measurements (e.g. max_depth = 2: "2 days 5 hours")
-    if seconds >= 60 * 60 * 24:
-        # Days
-        if max_depth == 1:
-            return(f"{int(round(seconds / (60 * 60 * 24)))} days")
-        remainder = seconds % (60 * 60 * 24)
-        days = int((seconds - remainder) / (60 * 60 * 24))
-        return(f"{days} days {_dtstr(remainder, max_depth - 1)}")
-    if seconds >= 60 * 60:
-        # Hours
-        if max_depth == 1:
-            return(f"{int(round(seconds / (60 * 60)))} hours")
-        remainder = seconds % (60 * 60)
-        hours = int((seconds - remainder) / (60 * 60))
-        return(f"{hours} hours {_dtstr(remainder, max_depth - 1)}")
-    if seconds >= 60:
-        # Minutes
-        if max_depth == 1:
-            return(f"{int(round(seconds / 60))} min")
-        remainder = seconds % (60)
-        minutes = int((seconds - remainder) / (60))
-        return(f"{minutes} min {_dtstr(remainder, max_depth - 1)}")
-    if seconds >= 1:
-        # Seconds
-        if max_depth == 1:
-            return(f"{int(round(seconds))} sec")
-        remainder = seconds % (1)
-        secs = int((seconds - remainder))
-        return(f"{secs} sec {_dtstr(remainder, max_depth - 1)}")
-    # Milliseconds
-    return(f"{int(round(seconds / 0.001))} ms")
-
 # -----------------------------------------------------------------------------
 # ------------------------------- class Journal -------------------------------
 # -----------------------------------------------------------------------------
 
 class Journal():
 
-    # Constructor, descriptor, output
+    # --------------------------- Class properties ----------------------------
 
     semaphor_prefixes = ["| ", "/ ", "- ", "\\ "]
+    time_format = "%H:%M:%S" # Print time with
 
     answer_strings = {
         "yes" : ["yes", "y", "aye"],
@@ -203,6 +165,7 @@ class Journal():
         print(sample_journal.dump())
 
 
+    # -------------------- Constructor, descriptor, output --------------------
 
     def __init__(self, verbosity = 5, print_on_the_fly = True, fancy_printing = True, max_row_width = 200, yes = None):
 
@@ -230,7 +193,7 @@ class Journal():
         self.last_printed_line = None # Always printed with \r until next line is staged, with different colour
         self.last_printed_depth = 0
 
-        self.semaphor = Semaphor(time_format = "%H:%M:%S", print_directly = False) # The in-house semaphor used to hang on a routine
+        self.semaphor = Printable_Semaphor() # The in-house semaphor used to hang on a routine
         self.cur_semaphor_event = None
         self.cur_semaphor_prefix_id = 0
 
@@ -246,7 +209,7 @@ class Journal():
         # dumps journal into string
         return(self.journal_text)
 
-    # Helping methods
+    # --------------------------- Prefix management ---------------------------
 
     def pipe_stack(self, n, allow_fancy = True):
         if self.fancy_printing and allow_fancy:
@@ -258,8 +221,13 @@ class Journal():
             return("| " * n)
 
     def pre(self, allow_fancy = True):
-        # prefix for current depth
-        return(self.pipe_stack(self.depth, allow_fancy))
+        # prefix for current depth.
+
+        # The general form is [pipes] [progress bars]
+        res = self.pipe_stack(self.depth, allow_fancy)
+        if len(self.semaphor.processes) > 0:
+            res += self.semaphor.progress_bars(self.fancy_printing and allow_fancy) + " "
+        return(res)
 
     def get_stack_v(self):
         # If stack is non-empty, we return last max req verbosity from stack; -1 otherwise (no requirement)
@@ -435,40 +403,40 @@ class Journal():
                 # we can print the entire matrix
                 for i in range(len(m)):
                     for j in range(len(m[i]) - 1):
-                        pq_app(st(rdec(m[i][j]), col_width[j]), i)
-                    pq_app(" " + st(rdec(m[i][len(m[i]) - 1]), col_width[-1] - 2), i)
+                        pq_app(PMU_funcs.st(rdec(m[i][j]), col_width[j]), i)
+                    pq_app(" " + PMU_funcs.st(rdec(m[i][len(m[i]) - 1]), col_width[-1] - 2), i)
             else:
                 # we trim after max_rows - 2
                 for i in range(max_rows - 2):
                     for j in range(len(m[i]) - 1):
-                        pq_app(st(rdec(m[i][j]), col_width[j]), i)
-                    pq_app(" " + st(rdec(m[i][len(m[i]) - 1]), col_width[-1] - 2), i)
+                        pq_app(PMU_funcs.st(rdec(m[i][j]), col_width[j]), i)
+                    pq_app(" " + PMU_funcs.st(rdec(m[i][len(m[i]) - 1]), col_width[-1] - 2), i)
                 for j in range(len(m[0]) - 1):
-                    pq_app(st("...", col_width[j]), max_rows - 2)
-                pq_app(" " + st("...", col_width[-1] - 2), max_rows - 2)
+                    pq_app(PMU_funcs.st("...", col_width[j]), max_rows - 2)
+                pq_app(" " + PMU_funcs.st("...", col_width[-1] - 2), max_rows - 2)
                 for j in range(len(m[-1]) - 1):
-                    pq_app(st(rdec(m[-1][j]), col_width[j]), max_rows - 1)
-                pq_app(" " + st(rdec(m[-1][len(m[-1]) - 1]), col_width[-1] - 2), max_rows - 1)
+                    pq_app(PMU_funcs.st(rdec(m[-1][j]), col_width[j]), max_rows - 1)
+                pq_app(" " + PMU_funcs.st(rdec(m[-1][len(m[-1]) - 1]), col_width[-1] - 2), max_rows - 1)
         else:
             # we have to trim the number of entries per row
             if len(m) <= max_rows:
                 # we can print all rows
                 for i in range(len(m)):
                     for j in range(trim_N):
-                        pq_app(st(rdec(m[i][j]), col_width[j]), i)
-                    pq_app("... " + st(rdec(m[i][len(m[i]) - 1]), col_width[-1] - 2), i)
+                        pq_app(PMU_funcs.st(rdec(m[i][j]), col_width[j]), i)
+                    pq_app("... " + PMU_funcs.st(rdec(m[i][len(m[i]) - 1]), col_width[-1] - 2), i)
             else:
                 # we trim rows and columns
                 for i in range(max_rows - 2):
                     for j in range(trim_N):
-                        pq_app(st(rdec(m[i][j]), col_width[j]), i)
-                    pq_app("... " + st(rdec(m[i][len(m[i]) - 1]), col_width[-1] - 2), i)
+                        pq_app(PMU_funcs.st(rdec(m[i][j]), col_width[j]), i)
+                    pq_app("... " + PMU_funcs.st(rdec(m[i][len(m[i]) - 1]), col_width[-1] - 2), i)
                 for j in range(trim_N):
-                    pq_app(st("...", col_width[j]), max_rows - 2)
-                pq_app("    " + st("...", col_width[-1] - 2), max_rows - 2)
+                    pq_app(PMU_funcs.st("...", col_width[j]), max_rows - 2)
+                pq_app("    " + PMU_funcs.st("...", col_width[-1] - 2), max_rows - 2)
                 for j in range(trim_N):
-                    pq_app(st(rdec(m[-1][j]), col_width[j]), max_rows - 1)
-                pq_app("... " + st(rdec(m[-1][len(m[-1]) - 1]), col_width[-1] - 2), max_rows - 1)
+                    pq_app(PMU_funcs.st(rdec(m[-1][j]), col_width[j]), max_rows - 1)
+                pq_app("... " + PMU_funcs.st(rdec(m[-1][len(m[-1]) - 1]), col_width[-1] - 2), max_rows - 1)
 
         for i in range(len(plain_print_queue)):
             if self.fancy_printing:
@@ -504,15 +472,15 @@ class Journal():
                     max_len_by_column[j] = len(str(list_of_rows[i][j]))
 
         if self.fancy_printing:
-            fancy_header_str = st(table_name, max_len_row_names + header_separation) + fancy_vert_sep
+            fancy_header_str = PMU_funcs.st(table_name, max_len_row_names + header_separation) + fancy_vert_sep
             for i in range(len(column_names)):
-                fancy_header_str += st(column_names[i], max_len_by_column[i] + header_separation)
+                fancy_header_str += PMU_funcs.st(column_names[i], max_len_by_column[i] + header_separation)
                 if i in subtable_borders:
                     fancy_header_str += fancy_vert_sep
-        plain_header_str = st(table_name, max_len_row_names + header_separation) + plain_vert_sep
+        plain_header_str = PMU_funcs.st(table_name, max_len_row_names + header_separation) + plain_vert_sep
         header_length = max_len_row_names + header_separation + vert_sep_len
         for i in range(len(column_names)):
-            plain_header_str += st(column_names[i], max_len_by_column[i] + header_separation)
+            plain_header_str += PMU_funcs.st(column_names[i], max_len_by_column[i] + header_separation)
             header_length += max_len_by_column[i] + header_separation
             if i in subtable_borders:
                 plain_header_str += plain_vert_sep
@@ -526,15 +494,15 @@ class Journal():
         plain_print_queue.append("-" * header_length)
         for i in range(len(row_names)):
             if self.fancy_printing:
-                fancy_cur_str = st(row_names[i], max_len_row_names + header_separation) + fancy_vert_sep
+                fancy_cur_str = PMU_funcs.st(row_names[i], max_len_row_names + header_separation) + fancy_vert_sep
                 for j in range(len(column_names)):
-                    fancy_cur_str += st(list_of_rows[i][j], max_len_by_column[j] + header_separation)
+                    fancy_cur_str += PMU_funcs.st(list_of_rows[i][j], max_len_by_column[j] + header_separation)
                     if j in subtable_borders:
                         fancy_cur_str += fancy_vert_sep
                 fancy_print_queue.append(fancy_cur_str)
-            plain_cur_str = st(row_names[i], max_len_row_names + header_separation) + plain_vert_sep
+            plain_cur_str = PMU_funcs.st(row_names[i], max_len_row_names + header_separation) + plain_vert_sep
             for j in range(len(column_names)):
-                plain_cur_str += st(list_of_rows[i][j], max_len_by_column[j] + header_separation)
+                plain_cur_str += PMU_funcs.st(list_of_rows[i][j], max_len_by_column[j] + header_separation)
                 if j in subtable_borders:
                     plain_cur_str += plain_vert_sep
             plain_print_queue.append(plain_cur_str)
