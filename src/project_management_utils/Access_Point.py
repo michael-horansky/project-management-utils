@@ -4,7 +4,7 @@
 import sys
 
 
-class AccessPoint():
+class Access_Point():
 
     def __init__(self, name, desc, params):
         # name is a short string; the filename of the script
