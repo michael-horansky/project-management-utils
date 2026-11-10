@@ -57,7 +57,7 @@ class Printable_Semaphor(Semaphor):
 
     def get_exit_msg(self, S_ID, process_duration):
         # We include padding to overwrite hanging previews
-        exit_msg_fancy = f"Process '{self.bg_highlight(S_ID, self.label[S_ID])}' finished after {PMU_funcs.dtstr(process_duration)}." + ' ' * self.padding_length
+        exit_msg_fancy = f"Process '{self.bg_highlight(S_ID, self.label[S_ID])}' finished after {PMU_funcs.dtstr(process_duration)}."
         exit_msg_plain = f"Process '{self.label[S_ID]}' finished after {PMU_funcs.dtstr(process_duration)}."
         return (exit_msg_fancy, exit_msg_plain)
 

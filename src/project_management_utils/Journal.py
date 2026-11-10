@@ -244,9 +244,9 @@ class Journal():
     def cur_highlight(self, raw):
         return(color.BOLD + raw + color.LIGHT)
 
-    def commit_last_line(self):
+    def commit_last_line(self, padding_length = 0):
         if self.last_printed_line is not None:
-            print(self.pipe_stack(self.last_printed_depth) + self.last_printed_line)
+            print(self.pipe_stack(self.last_printed_depth) + self.last_printed_line + ' ' * padding_length)
             self.last_printed_line = None
 
     def preview_print(self, msg):
@@ -260,7 +260,7 @@ class Journal():
 
     # Write method
 
-    def write(self, msg, v = -1, prevent_printing_on_the_fly = False, plain_msg = None, agent = None):
+    def write(self, msg, v = -1, prevent_printing_on_the_fly = False, plain_msg = None, agent = None, padding_length = 0):
         # Writes a message inside current routine at current depth
 
         agent_pre, agent_plain_pre = self.get_agent_tag(agent)
@@ -273,7 +273,7 @@ class Journal():
             if self.print_on_the_fly and not prevent_printing_on_the_fly:
                 if self.fancy_printing:
                     # We firstly print the last submitted line, and then the preprint of the current line
-                    self.commit_last_line()
+                    self.commit_last_line(padding_length)
                     self.preview_print(agent_pre + msg)
                 else:
                     # crude printing only
@@ -580,6 +580,8 @@ class Journal():
             exit_msg_plain = ""
         exit_msg_fancy = exit_msg_plain
 
+        padding_length = self.semaphor.padding_length
+
         # check if it's semaphored
         was_it_semaphored = last_routine[3] is not None
         if was_it_semaphored:
@@ -590,20 +592,7 @@ class Journal():
             exit_msg_fancy = " " + semaphor_exit_msg_fancy
             exit_msg_plain = " " + semaphor_exit_msg_plain
         self.depth -= 1
-        if self.fancy_printing and self.verbosity >= last_routine[1]:
-
-            # exit_msg is the plain one. We create the fancy one, too.
-            self.write("\\_" + exit_msg_fancy, last_routine[1], plain_msg = "\\_" + exit_msg_plain)
-
-            """self.write(f"\\_{exit_msg}", last_routine[1], prevent_printing_on_the_fly = True)
-            if self.print_on_the_fly:
-
-
-
-                #self.commit_last_line() # we don't want to hang the last semaphor update
-                #self.preview_print(gradual_fg_color[self.depth % len(gradual_fg_color)] + "\\_" + color.END + exit_msg)"""
-        else:
-            self.write(f"\\_{exit_msg}", last_routine[1])
+        self.write("\\_" + exit_msg_fancy, last_routine[1], plain_msg = "\\_" + exit_msg_plain, padding_length = padding_length)
         if was_it_semaphored:
             return process_duration
 
