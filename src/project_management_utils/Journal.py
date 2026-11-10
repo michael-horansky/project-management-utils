@@ -1,4 +1,4 @@
-import .PMU_funcs
+from . import PMU_funcs
 
 from .color import color
 from .Printable_Semaphor import Printable_Semaphor

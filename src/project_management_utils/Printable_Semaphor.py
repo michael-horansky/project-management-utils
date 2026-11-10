@@ -3,7 +3,7 @@
 # -----------------------------------------------------------------------------
 # Extends class Semaphor. Equipped with printing procedures helpful to Journal.
 
-import .PMU_funcs
+from . import PMU_funcs
 
 from .color import color
 from .Semaphor import Semaphor
