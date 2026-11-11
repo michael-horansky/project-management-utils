@@ -114,7 +114,11 @@ class Printable_Semaphor(Semaphor):
         if self.processes[S_ID].ETA is None:
             # No way to estimate the ETA, as we're still waiting for the first event
             return 'unknown'
-        return PMU_funcs.dtstr(self.processes[S_ID].ETA, concise = True, force_width = 7)
+
+        # Here we see how much space should we have available
+        space_available = self.width[S_ID] - 8 - len(self.label[S_ID]) - (3 if self.processes[S_ID].N_div <= 100 else 5)
+
+        return PMU_funcs.dtstr(self.processes[S_ID].ETA, concise = True, force_width = max(7, space_available))
 
     def get_percentage_str(self, S_ID):
         if self.processes[S_ID].N_div <= 100:
