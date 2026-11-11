@@ -19,6 +19,9 @@ class Printable_Semaphor(Semaphor):
     spinning_pipes = ["|", "/", "-", "\\"]
     min_progress_bar_width = 25
 
+    min_ETA_len = 7
+    max_ETA_len = 9
+
     def __init__(self, time_format = "%H:%M:%S"):
         super().__init__() # Initialises abstract Semaphor
         self.label = {}
@@ -118,7 +121,7 @@ class Printable_Semaphor(Semaphor):
         # Here we see how much space should we have available
         space_available = self.width[S_ID] - 8 - len(self.label[S_ID]) - (3 if self.processes[S_ID].N_div <= 100 else 5)
 
-        return PMU_funcs.dtstr(self.processes[S_ID].ETA, concise = True, force_width = max(7, space_available))
+        return PMU_funcs.dtstr(self.processes[S_ID].ETA, concise = True, force_width = min(Printable_Semaphor.max_ETA_len, max(Printable_Semaphor.min_ETA_len, space_available)))
 
     def get_percentage_str(self, S_ID):
         if self.processes[S_ID].N_div <= 100:
