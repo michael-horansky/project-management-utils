@@ -202,7 +202,7 @@ class Disk_Jockey():
 
         if (not self.did_load_from_disk):
 
-            if self.log.ask_yes_no("WARNING: Saving to an existing data directory. Data may be owerwritten. Proceed?", False):
+            if self.log.ask_yes_no("WARNING: Saving to an existing data directory. Data may be overwritten. Proceed?", False):
                 # Proceed and mark loading as safe
                 self.did_load_from_disk = True
             else:

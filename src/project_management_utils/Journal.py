@@ -495,13 +495,15 @@ class Journal():
 
 
         new_ID = None
+        header_fancy = header
         if semaphored:
             # We register the new event
             new_ID = self.semaphor.create_event(**kwargs)
+            header_fancy = self.semaphor.bg_highlight(new_ID, header)
 
         self.routine_stack.append([header, max(v, self.get_stack_v()), agent, new_ID])
 
-        self.write(header, v, agent = agent)
+        self.write(header_fancy, v, agent = agent, plain_msg = header)
         self.depth += 1
 
         if semaphored:
