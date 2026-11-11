@@ -499,7 +499,7 @@ class Journal():
         if semaphored:
             # We register the new event
             new_ID = self.semaphor.create_event(**kwargs)
-            header_fancy = self.semaphor.bg_highlight(new_ID, header)
+            header_fancy = self.semaphor.fg_highlight(new_ID, header)
 
         self.routine_stack.append([header, max(v, self.get_stack_v()), agent, new_ID])
 
