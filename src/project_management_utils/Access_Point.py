@@ -67,7 +67,7 @@ class Access_Point():
         for i in range(len(cmd_args)):
             if cmd_args[i] in Access_Point.reserved_args:
                 # arg was processed as a reserved arg. Skipping to next arg.
-                self.process_reserved_arg(self, cmd_args[i])
+                self.process_reserved_arg(cmd_args[i])
             elif "=" in cmd_args[i]:
                 key, value = cmd_args[i].split("=", 1)
                 if key not in self.param_names:
