@@ -6,6 +6,8 @@ import sys
 
 class Access_Point():
 
+    reserved_args = ["man", "help", "reserved"]
+
     def __init__(self, name, desc, params):
         # name is a short string; the filename of the script
         # desc is a long description of what the script does
@@ -23,6 +25,10 @@ class Access_Point():
 
         self.param_names = []
         for i in range(len(self.params)):
+            if self.params[i][0] in Access_Point.reserved_args:
+                # Trying to use a reserved param name
+                raise Exception(f"Access Point cannot be initialised with a parameter called '{self.params[i][0]}'; this name is reserved for special arguments.")
+
             self.param_names.append(self.params[i][0])
 
     def enforce_type(self, i, val):
@@ -30,6 +36,15 @@ class Access_Point():
             return(self.params[i][1](val))
         except:
             raise Exception(f"Conversion of parameter \"{self.params[i][0]}\" failed (type \"{str(self.params[i][1])}\" expected; provided value {val} is of type {type(val)})")
+
+    def process_reserved_arg(self, arg):
+        # Certain reserved args may result in raising exceptions or otherwise disrupting the flow of the program.
+        if arg in ["man", "help"]:
+            self.man()
+            quit()
+        if arg in ["reserved"]:
+            self.print_reserved_args()
+            quit()
 
     def process_cmd_args(self):
         # Returns a dict of properly-typed arguments if cmd_args is sane
@@ -50,7 +65,10 @@ class Access_Point():
 
         kw_arg_encountered = False
         for i in range(len(cmd_args)):
-            if "=" in cmd_args[i]:
+            if cmd_args[i] in Access_Point.reserved_args:
+                # arg was processed as a reserved arg. Skipping to next arg.
+                self.process_reserved_arg(self, cmd_args[i])
+            elif "=" in cmd_args[i]:
                 key, value = cmd_args[i].split("=", 1)
                 if key not in self.param_names:
                     raise Exception(f"Unknown keyword argument \"{key}\" (provided value {value}).")
@@ -97,5 +115,10 @@ class Access_Point():
                 print(f"  \"{self.params[i][0]}\" [{str(self.params[i][1])}]: {self.params[i][3]}")
             else:
                 print(f"  \"{self.params[i][0]}\" [{str(self.params[i][1])}] (default {str(self.params[i][2])}): {self.params[i][3]}")
+
+    def print_reserved_args(self):
+        print("The following arguments are reserved for special actions:")
+        print("  'man', 'help': the full parameter list for the current access point is displayed; the program terminates.")
+        print("  'reserved': the list of reserved arguments is displayed; the program terminates.")
 
 
