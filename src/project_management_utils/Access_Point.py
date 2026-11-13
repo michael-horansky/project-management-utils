@@ -3,8 +3,11 @@
 
 import sys
 
+from .Correspondent import Correspondent
 
 class Access_Point():
+
+    AP_Correspondent = Correspondent({"ID" : "AP", "label" : "Access Point", "color" : "red"})
 
     reserved_args = ["man", "help", "reserved"]
 
@@ -27,7 +30,7 @@ class Access_Point():
         for i in range(len(self.params)):
             if self.params[i][0] in Access_Point.reserved_args:
                 # Trying to use a reserved param name
-                raise Exception(f"Access Point cannot be initialised with a parameter called '{self.params[i][0]}'; this name is reserved for special arguments.")
+                Access_Point.AP_Correspondent.error(f"Access Point cannot be initialised with a parameter called '{self.params[i][0]}'; this name is reserved for special arguments.")
 
             self.param_names.append(self.params[i][0])
 
@@ -35,7 +38,7 @@ class Access_Point():
         try:
             return(self.params[i][1](val))
         except:
-            raise Exception(f"Conversion of parameter \"{self.params[i][0]}\" failed (type \"{str(self.params[i][1])}\" expected; provided value {val} is of type {type(val)})")
+            Access_Point.AP_Correspondent.error(f"Conversion of parameter \"{self.params[i][0]}\" failed (type \"{str(self.params[i][1])}\" expected; provided value {val} is of type {type(val)})", err = TypeError)
 
     def process_reserved_arg(self, arg):
         # Certain reserved args may result in raising exceptions or otherwise disrupting the flow of the program.
@@ -54,7 +57,7 @@ class Access_Point():
 
         res = {}
 
-        print("Processing command parameters...")
+        Access_Point.AP_Correspondent.enter("Processing command parameters...")
 
         # We split the positional and keyword arguments
 
@@ -87,38 +90,60 @@ class Access_Point():
 
         for i in range(len(args_pos)):
             res[self.param_names[i]] = self.enforce_type(i, args_pos[i])
-            print(f"  \"{self.params[i][0]}\" set to {res[self.param_names[i]]}")
+            Access_Point.AP_Correspondent.write(f"\"{self.params[i][0]}\" set to {res[self.param_names[i]]}")
 
         for i in range(len(args_pos), len(self.params)):
 
             if self.param_names[i] in args_kw.keys():
                 res[self.param_names[i]] = self.enforce_type(i, args_kw[self.param_names[i]])
-                print(f"  \"{self.param_names[i]}\" set to {res[self.param_names[i]]}")
+                Access_Point.AP_Correspondent.write(f"\"{self.param_names[i]}\" set to {res[self.param_names[i]]}")
 
             elif self.params[i][2] is None:
-                raise Exception(f"Parameter \"{self.params[i][0]}\" mandatory but not provided (parameter index {i}).")
+                Access_Point.AP_Correspondent.error(f"Parameter \"{self.params[i][0]}\" mandatory but not provided (parameter index {i}).")
             else:
                 res[self.param_names[i]] = self.params[i][2]
-                print(f"  \"{self.param_names[i]}\" defaulted to {res[self.param_names[i]]}")
-        print("  Success!")
+                Access_Point.AP_Correspondent.write(f"\"{self.param_names[i]}\" defaulted to {res[self.param_names[i]]}")
+        Access_Point.AP_Correspondent.exit()
         return(res)
 
     def man(self):
         # Prints the manual for the access point, i.e. the required parameters
-        print("This is a computation access point.")
-        print(f"Script name: {self.name}")
-        print(self.desc)
-        print("-" * 80)
-        print("Parameters:")
+        Access_Point.AP_Correspondent.enter("This is a computation access point.")
+        Access_Point.AP_Correspondent.write(f"Script name: {self.name}")
+        Access_Point.AP_Correspondent.print_paragraph(self.desc, line_width = 80)
+        Access_Point.AP_Correspondent.print_dinkus(w = 80)
+
+        param_table_name = "Parameters"
+        param_table_cols = ["type", "default", "description"]
+        param_table_rows = []
+        param_table_data = []
+
+        for i in range(len(self.params)):
+            param_table_rows.append(self.params[i][0])
+            param_table_data.append([str(self.params[i][1]), "" if self.params[i][2] is None else str(self.params[i][2]), self.params[i][3]])
+
+        Access_Point.AP_Correspondent.prinit_table(param_table_name, param_table_cols, param_table_rows, param_table_data)
+
+        """
+
+        Access_Point.AP_Correspondent.write("Parameters:")
         for i in range(len(self.params)):
             if self.params[i][2] is None:
                 print(f"  \"{self.params[i][0]}\" [{str(self.params[i][1])}]: {self.params[i][3]}")
             else:
                 print(f"  \"{self.params[i][0]}\" [{str(self.params[i][1])}] (default {str(self.params[i][2])}): {self.params[i][3]}")
+        """
+        Access_Point.AP_Correspondent.exit()
 
     def print_reserved_args(self):
-        print("The following arguments are reserved for special actions:")
-        print("  'man', 'help': the full parameter list for the current access point is displayed; the program terminates.")
-        print("  'reserved': the list of reserved arguments is displayed; the program terminates.")
+        Access_Point.AP_Correspondent.write("The following arguments are reserved for special actions:")
+
+        Access_Point.AP_Correspondent.print_itemize({
+                "'man', 'help'" : "the full parameter list for the current access point is displayed; the program terminates.",
+                "'reserved'" : "the list of reserved arguments is displayed; the program terminates."
+            })
+
+        #print("  'man', 'help': the full parameter list for the current access point is displayed; the program terminates.")
+        #print("  'reserved': the list of reserved arguments is displayed; the program terminates.")
 
 

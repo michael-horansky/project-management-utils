@@ -49,15 +49,27 @@ class Correspondent:
         if journal is not None:
             journal.warning(msg, v, agent = self.agent_ID)
 
-    def error(self, msg, v = -1):
+    def error(self, msg, v = -1, err = ValueError):
         if journal is not None:
-            journal.error(msg, v, agent = self.agent_ID)
+            journal.error(msg, v, agent = self.agent_ID, err = err)
 
     def ask_yes_no(self, msg, default):
         if journal is not None:
             return(journal.ask_yes_no(msg, agent = self.agent_ID))
         return(default)
 
-    def print_itemize(self, std_object):
+    def print_itemize(self, std_object, v = -1):
         if journal is not None:
             journal.print_itemize(std_object, agent = self.agent_ID)
+
+    def print_matrix(self, m, label, dec_points = 5, max_rows = 11, v = -1):
+        if journal is not None:
+            journal.print_matrix(m, label, dec_points = dec_points, max_rows = max_rows, v = v, agent = self.agent_ID)
+
+    def print_table(self, table_name, column_names, row_names, list_of_rows, subtable_borders = [], header_separation = 2, v = -1, agent = None):
+        if journal is not None:
+            journal.print_table(table_name, column_names, row_names, list_of_rows, subtable_borders = subtable_borders, header_separation = header_separation, v = v, agent = self.agent_ID)
+
+    def print_paragraph(self, msg, line_width = None, v = -1, n = 6):
+        if journal is not None:
+            journal.print_paragraph(msg, line_width = line_width, v = v, agent = self.agent_ID, n = n)

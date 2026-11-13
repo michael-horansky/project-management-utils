@@ -6,12 +6,14 @@ import time
 
 # -------------------- General string formatting functions --------------------
 
-def st(a, w):
-    if len(str(a)) >= w:
+def st(a, w, c = ' ', plain_len = None):
+    if plain_len is None:
+        plain_len = len(str(a))
+    if plain_len >= w:
         return(str(a)[:w]) # we trim
     else:
-        diff = w - len(str(a))
-        return(" " * int(diff // 2) + str(a) + " " * int(diff - diff // 2))
+        diff = w - plain_len
+        return(c * int(diff // 2) + str(a) + c * int(diff - diff // 2))
 
 
 # --------------------- Time string formatting functions ----------------------

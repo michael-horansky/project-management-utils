@@ -7,24 +7,27 @@ from .Printable_Semaphor import Printable_Semaphor
 # -------------------------- Typographical constants --------------------------
 # -----------------------------------------------------------------------------
 
-# -------------------------------- Delimiters ---------------------------------
-nested_semaphor_delim = " | "
-
 # ---------------------------------- Colors -----------------------------------
 
 
-gradual_fg_color = [ # used for pipes. Highlights routine depth. Cycles.
-    color.BRIGHT_BLUE,
-    color.BRIGHT_MAGENTA,
-    color.CYAN,
-    color.BRIGHT_CYAN
-    ]
 
 # -----------------------------------------------------------------------------
 # ------------------------------- class Journal -------------------------------
 # -----------------------------------------------------------------------------
 
 class Journal():
+
+    # ------------------------ Typographical constants ------------------------
+
+    pipe = "| "
+    asterism = " * * * "
+
+    gradual_fg_color = [ # used for pipes. Highlights routine depth. Cycles.
+            color.BRIGHT_BLUE,
+            color.BRIGHT_MAGENTA,
+            color.CYAN,
+            color.BRIGHT_CYAN
+        ]
 
     # --------------------------- Class properties ----------------------------
 
@@ -200,10 +203,10 @@ class Journal():
         if self.fancy_printing and allow_fancy:
             res = ""
             for i in range(n):
-                res += gradual_fg_color[i % len(gradual_fg_color)] + "|" + color.END + " "
+                res += Journal.gradual_fg_color[i % len(Journal.gradual_fg_color)] + Journal.pipe + color.END
             return(res)
         else:
-            return("| " * n)
+            return(Journal.pipe * n)
 
     def pre(self, allow_fancy = True, add_progress_bar = False, enforce_depth = None):
         # prefix for current depth.
@@ -281,12 +284,15 @@ class Journal():
         plain_msg = "WARNING: " + str(msg)
         self.write(fancy_msg, v, plain_msg = plain_msg, agent = agent)
 
-    def error(self, msg, v = -1, agent = None):
+    def error(self, msg, v = -1, agent = None, err = ValueError):
         fancy_msg = color.BRIGHT_RED + color.BOLD + "ERROR" + color.END + ": " + color.bg.RED + str(msg) + color.bg.DEFAULT
         plain_msg = "ERROR: " + str(msg)
         self.write(fancy_msg, v, plain_msg = plain_msg, agent = agent)
+        # Unless otherwise specified, we raise an exception of the proper type
+        if err is not None:
+            raise err(str(msg))
 
-    def print_itemize(self, std_object, agent = None):
+    def print_itemize(self, std_object, v = -1, agent = None):
         # std_object is an object with the following properties:
         #   1. It is either a dict or a list
         #   2. Every element is either a valid std_object or a string
@@ -312,13 +318,13 @@ class Journal():
             else:
                 plain_msg = " " * (2 * itemize_depth) + f"-{key}: {cur_std_object}"
                 if self.fancy_printing:
-                    self.write(" " * (2 * itemize_depth) + color.BRIGHT_YELLOW + "-" + color.END + f"{key}: {cur_std_object}", plain_msg = plain_msg, agent = agent)
+                    self.write(" " * (2 * itemize_depth) + color.BRIGHT_YELLOW + "-" + color.END + f"{key}: {cur_std_object}", plain_msg = plain_msg, v = v, agent = agent)
                 else:
-                    self.write(plain_msg, agent = agent)
+                    self.write(plain_msg, v = v, agent = agent)
 
         peel_layer(std_object)
 
-    def print_matrix(self, m, label, dec_points = 5, max_rows = 11):
+    def print_matrix(self, m, label, dec_points = 5, max_rows = 11, v = -1, agent = None):
 
         # First, we create the label prefix
         fancy_print_queue = []
@@ -375,10 +381,10 @@ class Journal():
                 if cur_len > col_width[j]:
                     col_width[j] = cur_len
 
-        do_rows_need_trimming = sum(col_width) > (self.max_row_width - 2 * self.depth - len(label) - 3)
+        do_rows_need_trimming = sum(col_width) > (self.max_row_width - len(Journal.pip) * self.depth - len(label) - 3)
         if do_rows_need_trimming:
             trim_N = 0 # number of entries we can display
-            row_leeway = self.max_row_width - 2 * self.depth - len(label) - 6 - col_width[-1]
+            row_leeway = self.max_row_width - len(Journal.pip) * self.depth - len(label) - 6 - col_width[-1]
             while(sum(col_width[:trim_N]) <= row_leeway and trim_N < len(m) - 1):
                 trim_N += 1
             trim_N -= 1
@@ -426,14 +432,14 @@ class Journal():
 
         for i in range(len(plain_print_queue)):
             if self.fancy_printing:
-                self.write(fancy_print_queue[i], plain_msg = plain_print_queue[i])
+                self.write(fancy_print_queue[i], plain_msg = plain_print_queue[i], v = v, agent = agent)
             else:
-                self.write(plain_print_queue[i])
+                self.write(plain_print_queue[i], v = v, agent = agent)
 
 
 
 
-    def print_table(self, table_name, column_names, row_names, list_of_rows, subtable_borders = [], header_separation = 2):
+    def print_table(self, table_name, column_names, row_names, list_of_rows, subtable_borders = [], header_separation = 2, v = -1, agent = None):
         # column_names[N], row_names[M], list_of_rows[M][N]
 
         fancy_print_queue = [] # each line is an element
@@ -498,11 +504,55 @@ class Journal():
 
         for i in range(len(plain_print_queue)):
             if self.fancy_printing:
-                self.write(fancy_print_queue[i], plain_msg = plain_print_queue[i])
+                self.write(fancy_print_queue[i], plain_msg = plain_print_queue[i], v = v, agent = agent)
             else:
-                self.write(plain_print_queue[i])
+                self.write(plain_print_queue[i], v = v, agent = agent)
 
+    def print_paragraph(self, msg, line_width = None, v = -1, agent = None, n = 6):
+        # msg must be plain text
+        if line_width is None:
+            line_width = self.max_row_width - self.depth * len(Journal.pipe)
+        else:
+            line_width = min(self.max_row_width - self.depth * len(Journal.pipe), line_width)
+        if line_width < 7:
+            # Cannot print anything
+            return
 
+        while len(msg) > line_width:
+            considered = msg[:line_width]
+            rest = msg[line_width:]
+
+            # A natural break is already available.
+            if considered[-1] == " " or rest[0] == " ":
+                line = considered.rstrip()
+                msg = rest.lstrip()
+            else:
+                # Look for a space among the last n characters.
+                search_start = max(0, line_width - n)
+                break_at = considered.rfind(" ", search_start)
+
+                if break_at != -1:
+                    line = considered[:break_at]
+                    msg = considered[break_at + 1:] + rest
+                else:
+                    # No suitable space: hyphenate.
+                    line = considered[:-1] + "-"
+                    msg = considered[-1] + rest
+
+            self.write(line, v = v, agent = agent)
+
+        if msg:
+            self.write(msg, v = v, agent = agent)
+
+    def print_dinkus(self, w = None, v = -1, agent = None):
+        if w is None:
+            w = self.max_row_width - self.depth * len(Journal.pipe)
+        else:
+            w = min(self.max_row_width - self.depth * len(Journal.pipe), w)
+        if w < len(Journal.asterism):
+            # Cannot print anything
+            return
+        self.write(PMU_funcs.st(color.fg_highlight('yellow', Journal.asterism, True), w, '-', plain_len = len(Journal.asterism)))
 
     # Routine stack management
 
@@ -584,7 +634,7 @@ class Journal():
             exit_msg_fancy = " " + semaphor_exit_msg_fancy
             exit_msg_plain = " " + semaphor_exit_msg_plain
         self.depth -= 1
-        self.write(gradual_fg_color[self.depth % len(gradual_fg_color)] + "\\_" + color.END + exit_msg_fancy, last_routine[1], plain_msg = "\\_" + exit_msg_plain, padding_length = padding_length)
+        self.write(Journal.gradual_fg_color[self.depth % len(Journal.gradual_fg_color)] + "\\_" + color.END + exit_msg_fancy, last_routine[1], plain_msg = "\\_" + exit_msg_plain, padding_length = padding_length)
         if was_it_semaphored:
             return process_duration
 
