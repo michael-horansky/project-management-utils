@@ -230,7 +230,8 @@ class Journal():
     def update_stack_agent(self):
         if len(self.routine_stack) > 0:
             self.stack_agent = self.routine_stack[-1][2]
-        self.stack_agent = None
+        else:
+            self.stack_agent = None
 
     # fancy printing methods
 
@@ -583,8 +584,6 @@ class Journal():
         self.depth += 1
 
         self.update_stack_agent()
-
-        self.write(f"New stack agent: {self.stack_agent}")
 
         if semaphored:
             return new_ID
