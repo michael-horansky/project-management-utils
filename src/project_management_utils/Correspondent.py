@@ -77,9 +77,9 @@ class Correspondent:
         if journal is not None:
             journal.print_matrix(m, label, dec_points = dec_points, max_rows = max_rows, v = v, agent = self.agent_ID)
 
-    def print_table(self, table_name, column_names, row_names, list_of_rows, subtable_borders = [], header_separation = 2, v = -1, agent = None):
+    def print_table(self, table_name, column_names, row_names, list_of_rows, subtable_borders = [], w = None, align = None, header_separation = 2, v = -1, agent = None):
         if journal is not None:
-            journal.print_table(table_name, column_names, row_names, list_of_rows, subtable_borders = subtable_borders, header_separation = header_separation, v = v, agent = self.agent_ID)
+            journal.print_table(table_name, column_names, row_names, list_of_rows, subtable_borders = subtable_borders, w = w, align = align, header_separation = header_separation, v = v, agent = self.agent_ID)
 
     def print_paragraph(self, msg, w = None, v = -1, n = 6, min_w = None):
         if journal is not None:
