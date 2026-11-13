@@ -187,9 +187,12 @@ class Journal():
                 self.commit_last_line()
             print("-" * 30 + " Process finished " + "-" * 30)
 
-    def dump(self):
-        # dumps journal into string
-        return(self.journal_text)
+    def dump(self, erase_journal_text = True):
+        # dumps journal into string, resetting it to empty otherwise disabled
+        res = self.journal_text
+        if erase_journal_text:
+            self.journal_text = ""
+        return(res)
 
     # --------------------------- Prefix management ---------------------------
 
