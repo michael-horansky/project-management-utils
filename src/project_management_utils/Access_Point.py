@@ -110,7 +110,7 @@ class Access_Point():
         # Prints the manual for the access point, i.e. the required parameters
         Access_Point.AP_Correspondent.enter("This is a computation access point.")
         Access_Point.AP_Correspondent.write(f"Script name: {self.name}")
-        Access_Point.AP_Correspondent.print_paragraph(self.desc, line_width = 80)
+        Access_Point.AP_Correspondent.print_paragraph(self.desc, w = 80)
         Access_Point.AP_Correspondent.print_dinkus(w = 80)
 
         """params_obj = {}
