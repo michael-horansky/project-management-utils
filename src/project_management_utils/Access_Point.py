@@ -122,7 +122,7 @@ class Access_Point():
             param_table_rows.append(self.params[i][0])
             param_table_data.append([str(self.params[i][1]), "" if self.params[i][2] is None else str(self.params[i][2]), self.params[i][3]])
 
-        Access_Point.AP_Correspondent.prinit_table(param_table_name, param_table_cols, param_table_rows, param_table_data)
+        Access_Point.AP_Correspondent.print_table(param_table_name, param_table_cols, param_table_rows, param_table_data)
 
         """
 
