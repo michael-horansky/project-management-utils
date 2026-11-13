@@ -45,6 +45,22 @@ class Correspondent:
         if journal is not None:
             journal.exit()
 
+    # ---------------------- Semaphor management methods ----------------------
+
+    def semaphor_update(self, tau, S_ID = None):
+        if journal is not None:
+            journal.semaphor_update(tau, S_ID = S_ID)
+
+    def semaphor_progress(self, tau_progress = 1, S_ID = None):
+        if journal is not None:
+            journal.semaphor_progress(tau_progress = tau_progress, S_ID = S_ID)
+
+    def semaphor_overtime(self, tau_overtime = 1, S_ID = None):
+        if journal is not None:
+            journal.semaphor_overtime(tau_overtime = tau_overtime, S_ID = S_ID)
+
+    # -------------------- Special object printing methods --------------------
+
     def warning(self, msg, v = -1):
         if journal is not None:
             journal.warning(msg, v, agent = self.agent_ID)
@@ -52,11 +68,6 @@ class Correspondent:
     def error(self, msg, v = -1, err = ValueError):
         if journal is not None:
             journal.error(msg, v, agent = self.agent_ID, err = err)
-
-    def ask_yes_no(self, msg, default):
-        if journal is not None:
-            return(journal.ask_yes_no(msg, agent = self.agent_ID))
-        return(default)
 
     def print_itemize(self, std_object, v = -1):
         if journal is not None:
@@ -77,3 +88,10 @@ class Correspondent:
     def print_dinkus(self, w = None, v = -1):
         if journal is not None:
             journal.print_dinkus(w = w, v = v, agent = self.agent_ID)
+
+    # -------------------------- Interactive prompts --------------------------
+
+    def ask_yes_no(self, msg, default):
+        if journal is not None:
+            return(journal.ask_yes_no(msg, agent = self.agent_ID))
+        return(default)

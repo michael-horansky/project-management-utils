@@ -596,7 +596,7 @@ class Journal():
             if len(self.semaphor.processes) == 1:
                 return list(self.semaphor.processes.keys())[0]
             else:
-                raise Exception("Semaphor process ID must be provided on update if more than one process exists.")
+                self.error("Semaphor process ID must be provided on update if more than one process exists.")
         return S_ID
 
     def semaphor_update(self, tau, S_ID = None):
