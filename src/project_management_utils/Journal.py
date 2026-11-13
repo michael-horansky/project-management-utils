@@ -263,21 +263,24 @@ class Journal():
         if padding_length is None:
             padding_length = self.semaphor.padding_length
 
+        if plain_msg is None:
+            plain_msg = msg
+
         agent_pre, agent_plain_pre = self.get_agent_tag(agent)
+        msg = agent_pre + msg
+        plain_msg = agent_plain_pre + plain_msg
 
         if self.verbosity >= max(v, self.get_stack_v()):
-            if plain_msg is None:
-                plain_msg = msg
 
-            self.journal_text += self.pre(False) + agent_plain_pre + plain_msg + "\n"
+            self.journal_text += self.pre(False) + plain_msg + "\n"
             if self.print_on_the_fly and not prevent_printing_on_the_fly:
                 if self.fancy_printing:
                     # We firstly print the last submitted line, and then the preprint of the current line
                     self.commit_last_line(padding_length)
-                    self.preview_print(agent_pre + msg)
+                    self.preview_print(msg)
                 else:
                     # crude printing only
-                    print(self.pre() + agent_plain_pre + msg)
+                    print(self.pre() + plain_msg)
 
     # Special object printing methods
 
