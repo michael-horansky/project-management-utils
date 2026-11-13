@@ -491,9 +491,8 @@ class Journal():
             if len(str(row_name)) > max_len_row_names:
                 max_len_row_names = PMU_funcs.min_with_none(len(row_name), w[0])
         max_len_by_column = []
-        for column_name in column_names:
-            max_len_by_column.append(PMU_funcs.min_with_none(len(str(column_name)), w[j + 1]))
         for j in range(len(column_names)):
+            max_len_by_column.append(PMU_funcs.min_with_none(len(str(column_name)), w[j + 1]))
             for i in range(len(row_names)):
                 if max_len_by_column[j] < len(str(list_of_rows[i][j])):
                     max_len_by_column[j] = PMU_funcs.min_with_none(len(str(list_of_rows[i][j])), w[j + 1])
