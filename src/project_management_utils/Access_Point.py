@@ -116,9 +116,9 @@ class Access_Point():
         params_obj = {}
         for i in range(len(self.params)):
             if self.params[i][2] is None:
-                params_obj[f"\"{self.params[i][0]}\" [{str(self.params[i][1])}]"] = self.params[i][3]
+                params_obj[f"\"{self.params[i][0]}\" [{self.params[i][1].__name__}]"] = self.params[i][3]
             else:
-                params_obj[f"\"{self.params[i][0]}\" [{str(self.params[i][1])}] (default {str(self.params[i][2])})"] = self.params[i][3]
+                params_obj[f"\"{self.params[i][0]}\" [{self.params[i][1].__name__}] (default {str(self.params[i][2])})"] = self.params[i][3]
         Access_Point.AP_Correspondent.write("Parameters:")
         Access_Point.AP_Correspondent.print_itemize(params_obj)
 
@@ -130,7 +130,7 @@ class Access_Point():
 
         for i in range(len(self.params)):
             param_table_rows.append(self.params[i][0])
-            param_table_data.append([str(self.params[i][1]), "" if self.params[i][2] is None else str(self.params[i][2]), self.params[i][3]])
+            param_table_data.append([self.params[i][1].__name__, "" if self.params[i][2] is None else str(self.params[i][2]), self.params[i][3]])
 
         Access_Point.AP_Correspondent.print_table(param_table_name, param_table_cols, param_table_rows, param_table_data)"""
 
@@ -139,9 +139,9 @@ class Access_Point():
         Access_Point.AP_Correspondent.write("Parameters:")
         for i in range(len(self.params)):
             if self.params[i][2] is None:
-                print(f"  \"{self.params[i][0]}\" [{str(self.params[i][1])}]: {self.params[i][3]}")
+                print(f"  \"{self.params[i][0]}\" [{self.params[i][1].__name__}]: {self.params[i][3]}")
             else:
-                print(f"  \"{self.params[i][0]}\" [{str(self.params[i][1])}] (default {str(self.params[i][2])}): {self.params[i][3]}")
+                print(f"  \"{self.params[i][0]}\" [{self.params[i][1].__name__}] (default {str(self.params[i][2])}): {self.params[i][3]}")
         """
         Access_Point.AP_Correspondent.exit()
 
