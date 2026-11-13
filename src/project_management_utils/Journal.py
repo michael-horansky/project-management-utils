@@ -692,9 +692,9 @@ class Journal():
 
     def get_agent_tag(self, ID):
         if ID is None or ID == self.get_stack_agent():
-            return("abc", "abc")
+            return(str(ID), str(ID))
         elif ID not in self.agent_tags:
-            return("def", "def")
+            return("", "")
         elif self.agent_tags[ID]["color"] is None:
             return ("[" + self.agent_tags[ID]["label"] + "] ", "[" + self.agent_tags[ID]["label"] + "] ")
         elif isinstance(self.agent_tags[ID]["color"], str):
