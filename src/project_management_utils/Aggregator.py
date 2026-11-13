@@ -466,7 +466,7 @@ class Aggregator():
                 self.handle_error(f"Attempting registration of duplicate parameter '{name}'.")
             else:
                 self.log.warning(f"Duplicate parameter '{name}' encountered. Skipping the reassignment.", 10)
-                continue
+                return
 
         # If no label is given, we just use the param name
         if label is None:
