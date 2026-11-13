@@ -125,7 +125,7 @@ class Access_Point():
         # TODO add wrap_at_w = [None, none, 80] param to print_table so we can make certain cells wrap text to multi lines
         param_table_name  = "Parameters"
         param_table_cols  = ["type", "default", "description"]
-        param_table_w     = [None, None, 100]
+        param_table_w     = [None, None, None, 100]
         param_table_align = ["ct", "ct", "lt"]
         param_table_rows  = []
         param_table_data  = []

@@ -454,7 +454,7 @@ class Journal():
 
     def print_table(self, table_name, column_names, row_names, list_of_rows, subtable_borders = [], w = None, align = None, header_separation = 2, v = -1, agent = None):
         # column_names[N], row_names[M], list_of_rows[M][N]
-        # w[N] is the maximal allowed width for each column
+        # w[N + 1] is the maximal allowed width for each column, starting with the row name column
         # align[N] is the align mode for each column. These can be:
         #   -None: completely automatic
         #   -single char:
@@ -466,7 +466,7 @@ class Journal():
         #   -two-char string or tuple of single chars; these specify the horizontal and vertical alignment, respectively
 
         if w is None:
-            w = [None] * len(column_names)
+            w = [None] * (len(column_names) + 1)
         if align is None:
             align = [None] * len(column_names)
         if not isinstance(align, list):
@@ -486,18 +486,17 @@ class Journal():
         plain_vert_sep = "|"
         vert_sep_len = len(plain_vert_sep)
 
-        max_len_row_names = len(str(table_name))
+        max_len_row_names = PMU_funcs.min_with_none(len(str(table_name)), w[0])
         for row_name in row_names:
             if len(str(row_name)) > max_len_row_names:
-                max_len_row_names = len(row_name)
+                max_len_row_names = PMU_funcs.min_with_none(len(row_name), w[0])
         max_len_by_column = []
         for column_name in column_names:
-            max_len_by_column.append(len(str(column_name)))
-
+            max_len_by_column.append(PMU_funcs.min_with_none(len(str(column_name)), w[j + 1]))
         for j in range(len(column_names)):
             for i in range(len(row_names)):
                 if max_len_by_column[j] < len(str(list_of_rows[i][j])):
-                    max_len_by_column[j] = PMU_funcs.min_with_none(len(str(list_of_rows[i][j])), w[j])
+                    max_len_by_column[j] = PMU_funcs.min_with_none(len(str(list_of_rows[i][j])), w[j + 1])
 
         # We now convert each cell to a list of lines to take care of wrapping the text
         for i in range(len(row_names)):
