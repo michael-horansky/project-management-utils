@@ -383,10 +383,10 @@ class Journal():
                 if cur_len > col_width[j]:
                     col_width[j] = cur_len
 
-        do_rows_need_trimming = sum(col_width) > (self.max_row_width - len(Journal.pip) * self.depth - len(label) - 3)
+        do_rows_need_trimming = sum(col_width) > (self.max_row_width - len(Journal.pipe) * self.depth - len(label) - 3)
         if do_rows_need_trimming:
             trim_N = 0 # number of entries we can display
-            row_leeway = self.max_row_width - len(Journal.pip) * self.depth - len(label) - 6 - col_width[-1]
+            row_leeway = self.max_row_width - len(Journal.pipe) * self.depth - len(label) - 6 - col_width[-1]
             while(sum(col_width[:trim_N]) <= row_leeway and trim_N < len(m) - 1):
                 trim_N += 1
             trim_N -= 1
