@@ -202,9 +202,9 @@ class Journal():
 
     def max_allowed_w(self, w = None):
         if w is None:
-            w = max(0, self.max_row_width - self.depth * len(Journal.pipe))
+            return max(0, self.max_row_width - self.depth * len(Journal.pipe))
         else:
-            w = max(0, min(self.max_row_width - self.depth * len(Journal.pipe), w))
+            return max(0, min(self.max_row_width - self.depth * len(Journal.pipe), w))
 
     # --------------------------- Prefix management ---------------------------
 
