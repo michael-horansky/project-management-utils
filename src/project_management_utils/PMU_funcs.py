@@ -17,7 +17,7 @@ def auto_hyphenate(obj):
         return True
     return False
 
-def wrap_text(text, w = None, min_w = None, hyphenate = False, n = 6):
+def wrap_text(text, w, min_w = None, hyphenate = False, n = 6):
     # Returns a list of strings: the lines of the properly wrapped text.
 
     res = []
