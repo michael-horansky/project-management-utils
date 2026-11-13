@@ -29,8 +29,9 @@ class color:
     BOLD = '\033[1m'
     UNDERLINE = '\033[4m'
     NOTUNDERLINE = '\033[24m'
-    LIGHT = '\033[22m' # removes BOLD without resetting color
-    DISABLE = '\033[02m'
+    FAINT = '\033[2m'
+    LIGHT = '\033[22m' # removes BOLD or FAINT without resetting color
+
     END = '\033[0m'
 
     class bg:
@@ -105,3 +106,17 @@ class color:
             }
 
         }
+
+    @staticmethod
+    def bg_highlight(c, msg, bright = True):
+        if c not in color.hr.keys():
+            raise ValueError(f"Unknown color identifier '{c}'.")
+        b_pre = 'b' if bright else ''
+        return color.hr[c][b_pre + 'b'] + (color.BLACK if bright else color.BRIGHT_WHITE) + msg + color.DEFAULT + color.bg.DEFAULT
+
+    @staticmethod
+    def fg_highlight(c, msg, bright = True):
+        if c not in color.hr.keys():
+            raise ValueError(f"Unknown color identifier '{c}'.")
+        b_pre = 'b' if bright else ''
+        return color.hr[c][b_pre + 'f'] + msg + color.DEFAULT

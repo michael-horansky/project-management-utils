@@ -12,6 +12,7 @@ import numpy as np
 import pickle
 
 from .color import color
+from .Journal import journal
 from .Correspondent import Correspondent
 
 
@@ -51,14 +52,15 @@ class Disk_Jockey():
     force_pickled_meta = ["csv"] # file types in this list require their metadata files to be pickled
     columnwise_data_objects = ["csv"]
 
-    def __init__(self, storage_path, journal_instance = None):
+    Disk_Jockey_Correspondent = Correspondent({"ID" : "DJ", "label" : "Disk Jockey", "color" : "yellow"}, verbosity_offset = 10)
+
+    def __init__(self, storage_path):
         # storage_path is a string determining the subdirectory where all data is located
-        # journal_instance is an instance of Journal, if provided
 
         self.storage_path = storage_path
 
         # Correspondence with Journal
-        self.log = Correspondent(journal_instance, {"ID" : "DJ", "label" : "Disk Jockey", "color" : color.YELLOW}, verbosity_offset = 10)
+        self.log = Disk_Jockey.Disk_Jockey_Correspondent
 
         self.data_nodes = {} # [data_group] = datum name
         self.is_data_initialised = {} # [data_group][datum_name] = was anything committed to the datum?

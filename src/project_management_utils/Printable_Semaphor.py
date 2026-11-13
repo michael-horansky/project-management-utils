@@ -54,19 +54,17 @@ class Printable_Semaphor(Semaphor):
 
     def get_color_palette(self, iden):
         if iden in color.hr.keys():
-            return color.hr[iden]
+            return iden
         elif iden in self.c.keys():
-            return color.hr[self.c[iden]]
+            return self.c[iden]
         else:
             raise Exception(f"Unknown color identifier: {iden}")
 
     def bg_highlight(self, iden, msg, bright = True):
-        b_pre = 'b' if bright else ''
-        return self.get_color_palette(iden)[b_pre + 'b'] + (color.BLACK if bright else color.BRIGHT_WHITE) + msg + color.DEFAULT + color.bg.DEFAULT
+        return color.bg_highlight(self.get_color_palette(iden), msg, bright)
 
     def fg_highlight(self, iden, msg, bright = True):
-        b_pre = 'b' if bright else ''
-        return self.get_color_palette(iden)[b_pre + 'f'] + msg + color.DEFAULT
+        return color.fg_highlight(self.get_color_palette(iden), msg, bright)
 
     def get_exit_msg(self, S_ID, process_duration):
         # We include padding to overwrite hanging previews

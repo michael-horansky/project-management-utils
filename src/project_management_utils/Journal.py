@@ -74,14 +74,13 @@ class Journal():
         sample_journal.print_table(
             table_name = "Current properties",
             column_names = ["value", "default", "description"],
-            row_names = ["verbosity", "print_on_the_fly", "fancy_printing", "max_row_width", "yes", "plain_semaphor_N"],
+            row_names = ["verbosity", "print_on_the_fly", "fancy_printing", "max_row_width", "yes"],
             list_of_rows = [
                 [sample_journal.verbosity, 5, "Only logs with lower or equal value of verbosity are printed."],
                 [sample_journal.print_on_the_fly, "True", "Whether the log is also printed to an output stream."],
                 [sample_journal.fancy_printing, "True", "Formatting: font weight and color, rolling last line."],
                 [sample_journal.max_row_width, 200, "Rows get trimmed if length exceeds this value."],
-                [sample_journal.yes, None, "If not None, used instead of asking for input."],
-                [sample_journal.plain_semaphor_N, 20, "Forced number of flags for a plain semaphor event."]
+                [sample_journal.yes, None, "If not None, used instead of asking for input."]
                 ],
             subtable_borders=[1]
             )
@@ -138,17 +137,13 @@ class Journal():
 
         self.journal_text = ""
         self.routine_stack = [] # every routine is [header, max required verbosity, agent, associated semaphor ID]
-        self.verbosity = verbosity # The higher the verbosity, the more in detail the Journal is
-        self.print_on_the_fly = print_on_the_fly # If True, printing to terminal happens concurrently
         self.depth = 0
 
-        self.plain_semaphor_N = 20 # forced number of flags for a plain semaphor event
-
-        self.fancy_printing = fancy_printing # if True, we use colors, highlighting etc
-
-        self.max_row_width = max_row_width # used for clever wrapping
-
-        self.yes = yes # If not None, used instead of asking for input
+        self.set_verbosity(verbosity) # The higher the verbosity, the more in detail the Journal is
+        self.set_print_on_the_fly(print_on_the_fly) # If True, printing to terminal happens concurrently
+        self.set_fancy_printing(fancy_printing) # if True, we use colors, highlighting etc
+        self.set_max_row_width(max_row_width) # used for clever wrapping
+        self.set_yes(yes) # If not None, used instead of asking for input
 
         self.last_printed_line = None # Always printed with \r until next line is staged, with different colour
         self.last_printed_depth = 0
@@ -158,6 +153,33 @@ class Journal():
         self.cur_semaphor_prefix_id = 0
 
         self.agent_tags = {} # Used to distinguish write sources. Each tag has the form "agent" : {"label" : "agent name", "color" : "color code"}
+
+    # --------------- Post-initialisation parameter assignment ----------------
+
+    def set_verbosity(self, v):
+        if not isinstance(v, int) or v < 0:
+            raise ValueError("Verbosity must be set to a non-negative integer value.")
+        self.verbosity = v
+
+    def set_print_on_the_fly(self, print_on_the_fly):
+        if not isinstance(print_on_the_fly, bool):
+            raise ValueError("'Print on the fly' must be set to a boolean value.")
+        self.print_on_the_fly = print_on_the_fly
+
+    def set_fancy_printing(self, fancy_printing):
+        if not isinstance(fancy_printing, bool):
+            raise ValueError("'Fancy printing' must be set to a boolean value.")
+        self.fancy_printing = fancy_printing
+
+    def set_max_row_width(self, max_row_width):
+        if not isinstance(max_row_width, int) or max_row_width < 10:
+            raise ValueError("'Maximal row width' must be set to an integer value greater than 9.")
+        self.max_row_width = max_row_width
+
+    def set_yes(self, yes):
+        if not isinstance(yes, bool) and yes is not None:
+            raise ValueError("'yes' must be set to a boolean value or to None.")
+        self.yes = yes
 
     def close_journal(self):
         if self.print_on_the_fly:
@@ -606,6 +628,13 @@ class Journal():
     # -------------- Agent tag management -------------------
 
     def register_agent_tag(self, ID, tag):
+        # color is in the form ("keyword", is bright?)
+        if "color" not in tag:
+            tag["color"] = None
+        elif isinstance(tag["color"], str):
+            # We add the brightness option as a default value of False
+            tag["color"] = (tag["color"], False)
+
         self.agent_tags[ID] = tag
 
     def get_agent_tag(self, ID):
@@ -613,7 +642,10 @@ class Journal():
             return("", "")
         if ID not in self.agent_tags:
             return("", "")
-        return("[" + self.agent_tags[ID]["color"] + self.agent_tags[ID]["label"] + color.END + "]" + " ", "[" + self.agent_tags[ID]["label"] + "] ")
+        if self.agent_tags[ID]["color"] is None:
+            return ("[" + self.agent_tags[ID]["label"] + "] ", "[" + self.agent_tags[ID]["label"] + "] ")
+        else:
+            return ("[" + color.fg_highlight(self.agent_tags[ID]["color"][0], self.agent_tags[ID]["label"], bright = self.agent_tags[ID]["color"][1]) + "] ", "[" + self.agent_tags[ID]["label"] + "] ")
 
 # -----------------------------------------------------------------------------
 # --------------------------- class DisabledJournal ---------------------------
@@ -643,3 +675,6 @@ class DisabledJournal():
     def update_semaphor_event(self, tau):
         pass
 
+# ---------------------------- Singleton instance -----------------------------
+
+journal = Journal()
