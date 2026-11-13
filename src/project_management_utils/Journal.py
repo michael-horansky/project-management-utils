@@ -156,6 +156,7 @@ class Journal():
         self.cur_semaphor_prefix_id = 0
 
         self.agent_tags = {} # Used to distinguish write sources. Each tag has the form "agent" : {"label" : "agent name", "color" : "color code"}
+        self.stack_agent = None
 
     # --------------- Post-initialisation parameter assignment ----------------
 
@@ -226,10 +227,10 @@ class Journal():
             return(self.routine_stack[-1][1])
         return(-1)
 
-    def get_stack_agent(self):
+    def update_stack_agent(self):
         if len(self.routine_stack) > 0:
-            return(self.routine_stack[-1][2])
-        return(None)
+            self.stack_agent = self.routine_stack[-1][2]
+        self.stack_agent = None
 
     # fancy printing methods
 
@@ -581,6 +582,8 @@ class Journal():
         self.write(header_fancy, v, agent = agent, plain_msg = header)
         self.depth += 1
 
+        self.update_stack_agent()
+
         if semaphored:
             return new_ID
 
@@ -635,6 +638,7 @@ class Journal():
             exit_msg_plain = " " + semaphor_exit_msg_plain
         self.depth -= 1
         self.write(Journal.gradual_fg_color[self.depth % len(Journal.gradual_fg_color)] + "\\_" + color.END + exit_msg_fancy, last_routine[1], plain_msg = "\\_" + exit_msg_plain, padding_length = padding_length)
+        self.update_stack_agent()
         if was_it_semaphored:
             return process_duration
 
@@ -691,8 +695,8 @@ class Journal():
         self.agent_tags[ID] = tag
 
     def get_agent_tag(self, ID):
-        if ID is None or ID == self.get_stack_agent():
-            return(str(ID), str(ID))
+        if ID is None or ID == self.stack_agent:
+            return("", "")
         elif ID not in self.agent_tags:
             return("", "")
         elif self.agent_tags[ID]["color"] is None:
