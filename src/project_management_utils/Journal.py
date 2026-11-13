@@ -612,8 +612,10 @@ class Journal():
             else:
                 self.write(plain_print_queue[i], v = v, agent = agent)
 
-    def print_paragraph(self, msg, w = None, v = -1, agent = None, n = 6, min_w = len(Journal.asterism)):
+    def print_paragraph(self, msg, w = None, v = -1, agent = None, n = 6, min_w = None):
         # msg must be plain text
+        if min_w is None:
+            min_w = len(Journal.asterism)
         wrapped_msg = PMU_funcs.wrap_text(msg, w = self.max_allowed_w(w), min_w = min_w)
 
         for line in wrapped_msg:
