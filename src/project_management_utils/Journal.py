@@ -692,11 +692,13 @@ class Journal():
 
     def get_agent_tag(self, ID):
         if ID is None or ID == self.get_stack_agent():
-            return("", "")
-        if ID not in self.agent_tags:
-            return("", "")
-        if self.agent_tags[ID]["color"] is None:
+            return("abc", "abc")
+        elif ID not in self.agent_tags:
+            return("def", "def")
+        elif self.agent_tags[ID]["color"] is None:
             return ("[" + self.agent_tags[ID]["label"] + "] ", "[" + self.agent_tags[ID]["label"] + "] ")
+        elif isinstance(self.agent_tags[ID]["color"], str):
+            return ("[" + color.fg_highlight(self.agent_tags[ID]["color"], self.agent_tags[ID]["label"], bright = False) + "] ", "[" + self.agent_tags[ID]["label"] + "] ")
         else:
             return ("[" + color.fg_highlight(self.agent_tags[ID]["color"][0], self.agent_tags[ID]["label"], bright = self.agent_tags[ID]["color"][1]) + "] ", "[" + self.agent_tags[ID]["label"] + "] ")
 

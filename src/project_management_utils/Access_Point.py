@@ -113,7 +113,17 @@ class Access_Point():
         Access_Point.AP_Correspondent.print_paragraph(self.desc, line_width = 80)
         Access_Point.AP_Correspondent.print_dinkus(w = 80)
 
-        param_table_name = "Parameters"
+        params_obj = {}
+        for i in range(len(self.params)):
+            if self.params[i][2] is None:
+                params_obj[f"\"{self.params[i][0]}\" [{str(self.params[i][1])}]"] = self.params[i][3]
+            else:
+                params_obj[f"\"{self.params[i][0]}\" [{str(self.params[i][1])}] (default {str(self.params[i][2])})"] = self.params[i][3]
+        Access_Point.AP_Correspondent.write("Parameters:")
+        Access_Point.AP_Correspondent.print_itemize(params_obj)
+
+        # TODO add wrap_at_w = [None, none, 80] param to print_table so we can make certain cells wrap text to multi lines
+        """param_table_name = "Parameters"
         param_table_cols = ["type", "default", "description"]
         param_table_rows = []
         param_table_data = []
@@ -122,7 +132,7 @@ class Access_Point():
             param_table_rows.append(self.params[i][0])
             param_table_data.append([str(self.params[i][1]), "" if self.params[i][2] is None else str(self.params[i][2]), self.params[i][3]])
 
-        Access_Point.AP_Correspondent.print_table(param_table_name, param_table_cols, param_table_rows, param_table_data)
+        Access_Point.AP_Correspondent.print_table(param_table_name, param_table_cols, param_table_rows, param_table_data)"""
 
         """
 
