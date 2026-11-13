@@ -514,7 +514,7 @@ class Journal():
             sequenced_column_names[j] = PMU_funcs.valign(sequenced_column_names[j], header_height, align = cur_valign)
             for i in range(len(row_names)):
                 sequenced_cells[i][j] = PMU_funcs.valign(sequenced_cells[i][j], row_heights[i], align = cur_valign)
-        for i in range(row_names):
+        for i in range(len(row_names)):
             sequenced_row_names.append(PMU_funcs.wrap_and_align(row_names[i], max_len_row_names, row_heights[i], align = "rt"))
         sequenced_table_name = PMU_funcs.wrap_and_align(sequenced_table_name, max_len_row_names, header_height, align = "c", n = max_len_row_names)
 
