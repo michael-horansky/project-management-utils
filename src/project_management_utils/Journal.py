@@ -584,6 +584,8 @@ class Journal():
 
         self.update_stack_agent()
 
+        self.write(f"New stack agent: {self.stack_agent}")
+
         if semaphored:
             return new_ID
 
