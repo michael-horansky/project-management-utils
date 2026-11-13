@@ -81,9 +81,9 @@ class Correspondent:
         if journal is not None:
             journal.print_table(table_name, column_names, row_names, list_of_rows, subtable_borders = subtable_borders, header_separation = header_separation, v = v, agent = self.agent_ID)
 
-    def print_paragraph(self, msg, line_width = None, v = -1, n = 6):
+    def print_paragraph(self, msg, w = None, v = -1, n = 6, min_w = len(Journal.asterism)):
         if journal is not None:
-            journal.print_paragraph(msg, line_width = line_width, v = v, agent = self.agent_ID, n = n)
+            journal.print_paragraph(msg, w = w, v = v, agent = self.agent_ID, n = n, min_w = min_w)
 
     def print_dinkus(self, w = None, v = -1):
         if journal is not None:

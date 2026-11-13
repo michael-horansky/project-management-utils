@@ -198,6 +198,14 @@ class Journal():
             self.journal_text = ""
         return(res)
 
+    # ----------------------------- Text wrapping -----------------------------
+
+    def max_allowed_w(self, w = None):
+        if w is None:
+            w = max(0, self.max_row_width - self.depth * len(Journal.pipe))
+        else:
+            w = max(0, min(self.max_row_width - self.depth * len(Journal.pipe), w))
+
     # --------------------------- Prefix management ---------------------------
 
     def pipe_stack(self, n, allow_fancy = True):
@@ -444,14 +452,37 @@ class Journal():
 
 
 
-    def print_table(self, table_name, column_names, row_names, list_of_rows, subtable_borders = [], header_separation = 2, v = -1, agent = None):
+    def print_table(self, table_name, column_names, row_names, list_of_rows, subtable_borders = [], w = None, align = None, header_separation = 2, v = -1, agent = None):
         # column_names[N], row_names[M], list_of_rows[M][N]
+        # w[N] is the maximal allowed width for each column
+        # align[N] is the align mode for each column. These can be:
+        #   -None: completely automatic
+        #   -single char:
+        #      -"t" = (automatic, top)
+        #      -"b" = (automatic, bottom)
+        #      -"l" = (left, automatic)
+        #      -"r" = (right, automatic)
+        #      -"c" = (center, center)
+        #   -two-char string or tuple of single chars; these specify the horizontal and vertical alignment, respectively
+
+        if w is None:
+            w = [None] * len(column_names)
+        if align is None:
+            align = [None] * len(column_names)
+        if not isinstance(align, list):
+            align = [align] * len(column_names)
+        sequenced_cells = [] # [M][N] = [line1, line2, ...]
+        sequenced_column_names = [] # [N] = [line1, line2, ...]
+        sequenced_row_names = [] # [M] = [line1, line2, ...]
+        sequenced_table_name = None
+        header_height = 0
+        row_heights = [0] * len(row_names)
 
         fancy_print_queue = [] # each line is an element
         plain_print_queue = []
 
         if self.fancy_printing:
-            fancy_vert_sep = color.BRIGHT_YELLOW + "|" + color.END
+            fancy_vert_sep = color.fg_highlight('yellow', '|', True)
         plain_vert_sep = "|"
         vert_sep_len = len(plain_vert_sep)
 
@@ -466,9 +497,77 @@ class Journal():
         for j in range(len(column_names)):
             for i in range(len(row_names)):
                 if max_len_by_column[j] < len(str(list_of_rows[i][j])):
-                    max_len_by_column[j] = len(str(list_of_rows[i][j]))
+                    max_len_by_column[j] = PMU_funcs.min_with_none(len(str(list_of_rows[i][j])), w[j])
+
+        # We now convert each cell to a list of lines to take care of wrapping the text
+        for i in range(len(row_names)):
+            sequenced_cells.append([])
+        for j in range(len(column_names)):
+            sequenced_column_names.append(PMU_funcs.wrap_and_halign(column_names[j], max_len_by_column[j], align = align[j]))
+            if header_height < len(sequenced_column_names[j]):
+                header_height = len(sequenced_column_names[j])
+
+            for i in range(len(row_names)):
+                sequenced_cells[i].append(PMU_funcs.wrap_and_halign(list_of_rows[i][j], max_len_by_column[j], align = align[j]))
+                if row_heights[i] < len(sequenced_cells[i][j]):
+                    row_heights[i] = len(sequenced_cells[i][j])
+        for j in range(len(column_names)):
+            cur_valign = PMU_funcs.standard_align(None, align[j])[1]
+            sequenced_column_names[j] = PMU_funcs.valign(sequenced_column_names[j], header_height, align = cur_valign)
+            for i in range(len(row_names)):
+                sequenced_cells[i][j] = PMU_funcs.valign(sequenced_cells[i][j], row_heights[i], align = cur_valign)
+        for i in range(row_names):
+            sequenced_row_names.append(PMU_funcs.wrap_and_align(row_names[i], max_len_row_names, row_heights[i], align = "rt"))
+        sequenced_table_name = PMU_funcs.wrap_and_align(sequenced_table_name, max_len_row_names, header_height, align = "c", n = max_len_row_names)
+
+        # We now queue in the header row
+
+        for k in range(header_height):
+
+            if self.fancy_printing:
+                fancy_header_str = PMU_funcs.st(sequenced_table_name[k], max_len_row_names + header_separation) + fancy_vert_sep
+                for i in range(len(column_names)):
+                    fancy_header_str += PMU_funcs.st(sequenced_column_names[i][k], max_len_by_column[i] + header_separation)
+                    if i in subtable_borders:
+                        fancy_header_str += fancy_vert_sep
+                fancy_print_queue.append(fancy_header_str)
+
+            plain_header_str = PMU_funcs.st(sequenced_table_name[k], max_len_row_names + header_separation) + plain_vert_sep
+            header_length = max_len_row_names + header_separation + vert_sep_len
+            for i in range(len(column_names)):
+                plain_header_str += PMU_funcs.st(sequenced_column_names[i][k], max_len_by_column[i] + header_separation)
+                header_length += max_len_by_column[i] + header_separation
+                if i in subtable_borders:
+                    plain_header_str += plain_vert_sep
+                    header_length += vert_sep_len
+            plain_print_queue.append(plain_header_str)
+
 
         if self.fancy_printing:
+            fancy_print_queue.append(color.fg_highlight('yellow', "-" * header_length, True))
+        plain_print_queue.append("-" * header_length)
+        for i in range(len(row_names)):
+
+            for k in range(row_heights[i]):
+
+                if self.fancy_printing:
+                    fancy_cur_str = PMU_funcs.st(sequenced_row_names[i][k], max_len_row_names + header_separation) + fancy_vert_sep
+                    for j in range(len(column_names)):
+                        fancy_cur_str += PMU_funcs.st(sequenced_cells[i][j][k], max_len_by_column[j] + header_separation)
+                        if j in subtable_borders:
+                            fancy_cur_str += fancy_vert_sep
+                    fancy_print_queue.append(fancy_cur_str)
+                plain_cur_str = PMU_funcs.st(sequenced_row_names[i][k], max_len_row_names + header_separation) + plain_vert_sep
+                for j in range(len(column_names)):
+                    plain_cur_str += PMU_funcs.st(sequenced_cells[i][j][k], max_len_by_column[j] + header_separation)
+                    if j in subtable_borders:
+                        plain_cur_str += plain_vert_sep
+                plain_print_queue.append(plain_cur_str)
+        if self.fancy_printing:
+            fancy_print_queue.append(color.fg_highlight('yellow', "-" * header_length, True))
+        plain_print_queue.append("-" * header_length)
+
+        """if self.fancy_printing:
             fancy_header_str = PMU_funcs.st(table_name, max_len_row_names + header_separation) + fancy_vert_sep
             for i in range(len(column_names)):
                 fancy_header_str += PMU_funcs.st(column_names[i], max_len_by_column[i] + header_separation)
@@ -505,7 +604,7 @@ class Journal():
             plain_print_queue.append(plain_cur_str)
         if self.fancy_printing:
             fancy_print_queue.append(color.BRIGHT_YELLOW + "-" * header_length + color.END)
-        plain_print_queue.append("-" * header_length)
+        plain_print_queue.append("-" * header_length)"""
 
         for i in range(len(plain_print_queue)):
             if self.fancy_printing:
@@ -513,47 +612,16 @@ class Journal():
             else:
                 self.write(plain_print_queue[i], v = v, agent = agent)
 
-    def print_paragraph(self, msg, line_width = None, v = -1, agent = None, n = 6):
+    def print_paragraph(self, msg, w = None, v = -1, agent = None, n = 6, min_w = len(Journal.asterism)):
         # msg must be plain text
-        if line_width is None:
-            line_width = self.max_row_width - self.depth * len(Journal.pipe)
-        else:
-            line_width = min(self.max_row_width - self.depth * len(Journal.pipe), line_width)
-        if line_width < 7:
-            # Cannot print anything
-            return
+        wrapped_msg = PMU_funcs.wrap_text(msg, w = self.max_allowed_w(w), min_w = min_w)
 
-        while len(msg) > line_width:
-            considered = msg[:line_width]
-            rest = msg[line_width:]
-
-            # A natural break is already available.
-            if considered[-1] == " " or rest[0] == " ":
-                line = considered.rstrip()
-                msg = rest.lstrip()
-            else:
-                # Look for a space among the last n characters.
-                search_start = max(0, line_width - n)
-                break_at = considered.rfind(" ", search_start)
-
-                if break_at != -1:
-                    line = considered[:break_at]
-                    msg = considered[break_at + 1:] + rest
-                else:
-                    # No suitable space: hyphenate.
-                    line = considered[:-1] + "-"
-                    msg = considered[-1] + rest
-
+        for line in wrapped_msg:
             self.write(line, v = v, agent = agent)
 
-        if msg:
-            self.write(msg, v = v, agent = agent)
 
     def print_dinkus(self, w = None, v = -1, agent = None):
-        if w is None:
-            w = self.max_row_width - self.depth * len(Journal.pipe)
-        else:
-            w = min(self.max_row_width - self.depth * len(Journal.pipe), w)
+        w = self.max_allowed_w(w)
         if w < len(Journal.asterism):
             # Cannot print anything
             return
