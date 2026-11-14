@@ -12,6 +12,22 @@ def min_with_none(a, b):
         return a
     return min(a, b)
 
+def less_than_with_none(a, b):
+    # if a<b or b is None, return True
+    if b is None:
+        return True
+    if a is None:
+        return False
+    return a < b
+
+def more_than_with_none(a, b):
+    # if a>b or b is None, return True
+    if b is None:
+        return True
+    if a is None:
+        return False
+    return a > b
+
 def auto_hyphenate(obj):
     if isinstance(obj, str):
         return True

@@ -11,11 +11,16 @@ from .color import color
 from .Journal import journal
 from .Correspondent import Correspondent
 
+from . import PMU_funcs
+
 import numpy as np
 
 str_list_delim = "', '"
 
 class Aggregator_View():
+
+    # Unique hash for aggregation tree leaf values
+    _TREE_LEAF = object()
 
     def __init__(self, agg):
         self.agg = agg
@@ -28,6 +33,91 @@ class Aggregator_View():
             self.data.append(mirror_dp)
 
         self.free_params = [p for p in self.agg.parameters.keys()]
+
+    # --------------------- Output and debugging methods ----------------------
+
+    def print_groups(self, redundant_p = None):
+        # Groups by all params in redundant_p (can be a single param or a list). Prints the aggregation tree to output.
+        # Steps in the aggregation tree which do not branch are contracted to save space.
+
+        if redundant_p is None:
+            redundant_p = []
+        if isinstance(redundant_p, str):
+            redundant_p = [redundant_p]
+
+        if len(redundant_p) != len(set(redundant_p)):
+            self.agg.handle_error("Duplicate redundant parameters.")
+
+        unknown = set(redundant_p) - set(self.free_params)
+        if unknown:
+            self.agg.handle_error(f"Unknown or unavailable parameters: {', '.join(unknown)}")
+
+        aggregation_tags = self.free_params.copy()
+
+        for r_p in redundant_p:
+            aggregation_tags.remove(r_p)
+
+        aggregation_tree = {}
+        for dp in self.data:
+            #if any(dp[r_p] is None for r_p in redundant_p):
+            #    continue
+
+            cur_branch = aggregation_tree
+
+            for fp in aggregation_tags:
+                if dp[fp] not in cur_branch:
+                    cur_branch[dp[fp]] = {}
+                cur_branch = cur_branch[dp[fp]]
+
+            # each leaf value is [{r_p : [min value, max value], ...}, total weight]
+            if Aggregator_View._TREE_LEAF not in cur_branch:
+                # uninitialised leaf
+                cur_branch[Aggregator_View._TREE_LEAF] = [{}, dp["TOTAL_WEIGHT"]]
+                for r_p in redundant_p:
+                    cur_branch[Aggregator_View._TREE_LEAF][0][r_p] = [dp[r_p], dp[r_p]]
+            else:
+                cur_branch[Aggregator_View._TREE_LEAF][1] += dp["TOTAL_WEIGHT"]
+                for r_p in redundant_p:
+                    if PMU_funcs.less_than_with_none(dp[r_p], cur_branch[Aggregator_View._TREE_LEAF][0][r_p][0]):
+                        cur_branch[Aggregator_View._TREE_LEAF][0][r_p][0] = dp[r_p]
+                    if PMU_funcs.more_than_with_none(dp[r_p], cur_branch[Aggregator_View._TREE_LEAF][0][r_p][1]):
+                        cur_branch[Aggregator_View._TREE_LEAF][0][r_p][1] = dp[r_p]
+        if not aggregation_tree:
+            Aggregator.Aggregator_Correspondent.write("Aggregator View empty.")
+            return
+
+        def tree_leaf_descriptor(tree_leaf):
+            # returns a string
+            res = f"{tree_leaf[1]} datapoints"
+            if len(redundant_p) == 0:
+                return res
+            res += "; "
+            for r_p in redundant_p:
+                res += f"{r_p} from {tree_leaf[0][r_p][0]} to {tree_leaf[0][r_p][1]}, "
+            return res[:-2]
+        # Now we compress the aggregation tree
+        def compressor(cur_branch, cur_depth = 0, key_prefix = ""):
+            if cur_depth == len(aggregation_tags):
+                if key_prefix == "":
+                    return tree_leaf_descriptor(cur_branch[Aggregator_View._TREE_LEAF])
+                else:
+                    return {key_prefix : tree_leaf_descriptor(cur_branch[Aggregator_View._TREE_LEAF])}
+            else:
+                cur_p = aggregation_tags[cur_depth]
+                if len(cur_branch.keys()) == 1:
+                    # No branching, we compress
+                    cur_p_val = list(cur_branch.keys())[0]
+                    added_key_prefix = f"{cur_p}={cur_p_val}, "
+                    return compressor(cur_branch[cur_p_val], cur_depth + 1, key_prefix + added_key_prefix)
+                else:
+                    res = {}
+                    for k in cur_branch.keys():
+                        res[key_prefix + f"{cur_p}={k}"] = compressor(cur_branch[k], cur_depth + 1)
+                    return res
+        output_obj = compressor(aggregation_tree) # standard print_itemize object
+
+        Aggregator.Aggregator_Correspondent.print_itemize(output_obj)
+
 
 
     # -------------------------- aggregation methods --------------------------

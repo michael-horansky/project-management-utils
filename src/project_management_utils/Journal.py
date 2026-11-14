@@ -452,7 +452,7 @@ class Journal():
 
 
 
-    def print_table(self, table_name, column_names, row_names, list_of_rows, subtable_borders = [], w = None, align = None, header_separation = 2, v = -1, agent = None):
+    def print_table(self, table_name, column_names, row_names, list_of_rows, subtable_borders = [], w = None, align = None, hline = None, header_separation = 2, v = -1, agent = None):
         # column_names[N], row_names[M], list_of_rows[M][N]
         # w[N + 1] is the maximal allowed width for each column, starting with the row name column
         # align[N] is the align mode for each column. These can be:
@@ -464,6 +464,7 @@ class Journal():
         #      -"r" = (right, automatic)
         #      -"c" = (center, center)
         #   -two-char string or tuple of single chars; these specify the horizontal and vertical alignment, respectively
+        # If hline, the lowest line in each cell is underlined. If None, hline is set to True only if there exists a multi-line row.
 
         if w is None:
             w = [None] * (len(column_names) + 1)
@@ -518,6 +519,18 @@ class Journal():
             sequenced_row_names.append(PMU_funcs.wrap_and_align(row_names[i], max_len_row_names, row_heights[i], align = "rt"))
         sequenced_table_name = PMU_funcs.wrap_and_align(sequenced_table_name, max_len_row_names, header_height, align = "c", n = max_len_row_names)
 
+        if hline is None:
+            # We determine whether hline is necessary
+            if header_height > 1:
+                hline = True
+            else:
+                for i in range(len(row_names)):
+                    if row_heights[i] > 1:
+                        hline = True
+                        break
+        if hline is None:
+            hline = False
+
         # We now queue in the header row
 
         for k in range(header_height):
@@ -549,9 +562,15 @@ class Journal():
             for k in range(row_heights[i]):
 
                 if self.fancy_printing:
-                    fancy_cur_str = PMU_funcs.st(sequenced_row_names[i][k], max_len_row_names + header_separation) + fancy_vert_sep
+                    row_name_line = PMU_funcs.st(sequenced_row_names[i][k], max_len_row_names + header_separation)
+                    if hline and k == row_heights[i] - 1 and i != len(row_names) - 1:
+                        row_name_line = color.underline(row_name_line)
+                    fancy_cur_str = row_name_line + fancy_vert_sep
                     for j in range(len(column_names)):
-                        fancy_cur_str += PMU_funcs.st(sequenced_cells[i][j][k], max_len_by_column[j] + header_separation)
+                        cell_line = PMU_funcs.st(sequenced_cells[i][j][k], max_len_by_column[j] + header_separation)
+                        if hline and k == row_heights[i] - 1 and i != len(row_names) - 1:
+                            cell_line = color.underline(cell_line)
+                        fancy_cur_str += cell_line
                         if j in subtable_borders:
                             fancy_cur_str += fancy_vert_sep
                     fancy_print_queue.append(fancy_cur_str)

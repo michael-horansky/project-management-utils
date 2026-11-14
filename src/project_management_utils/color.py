@@ -120,3 +120,7 @@ class color:
             raise ValueError(f"Unknown color identifier '{c}'.")
         b_pre = 'b' if bright else ''
         return color.hr[c][b_pre + 'f'] + msg + color.DEFAULT
+
+    @staticmethod
+    def underline(msg):
+        return color.UNDERLINE + msg + color.NOTUNDERLINE
