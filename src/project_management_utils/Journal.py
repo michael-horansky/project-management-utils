@@ -579,6 +579,7 @@ class Journal():
                 sequenced_row_names[i].append(' ' * max_len_row_names)
                 for j in range(len(column_names)):
                     sequenced_cells[i][j].append(' ' * max_len_by_column[j])
+                row_heights[i] += 1
 
 
         # We now queue in the header row
