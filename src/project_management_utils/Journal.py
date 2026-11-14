@@ -206,6 +206,23 @@ class Journal():
         else:
             return max(0, min(self.max_row_width - self.depth * len(Journal.pipe), w))
 
+    # --------------------- Temporary elements management ---------------------
+
+    def get_temporary_elements_width(self):
+        # Temporary elements are elements automatically added to the preprint
+        # (i.e. highlight line), but do not persist in the output. As such,
+        # they must be overlaid with a padding when committing lines.
+        # This method calculates the exact width of that padding.
+
+        # Temporary element: progress bars
+        return self.semaphor.padding_length
+
+    def get_temporary_elements(self):
+        res = ""
+        if len(self.semaphor.processes) > 0:
+            res += self.semaphor.progress_bars(self.fancy_printing)
+        return res
+
     # --------------------------- Prefix management ---------------------------
 
     def pipe_stack(self, n, allow_fancy = True):
@@ -217,17 +234,17 @@ class Journal():
         else:
             return(Journal.pipe * n)
 
-    def pre(self, allow_fancy = True, add_progress_bar = False, enforce_depth = None):
+    def pre(self, allow_fancy = True, enforce_depth = None, temporary_elements = True):
         # prefix for current depth.
 
         if enforce_depth is None:
             enforce_depth = self.depth
 
-        # The general form is [pipes] [progress bars (in highlight only)]
+        # The general form is [pipes] [temporary elements (in highlight only)]
         res = self.pipe_stack(enforce_depth, allow_fancy)
-        if len(self.semaphor.processes) > 0 and add_progress_bar:
-            res += self.semaphor.progress_bars(self.fancy_printing and allow_fancy) + " "
-        return(res)
+        if temporary_elements and self.fancy_printing and allow_fancy:
+            res += self.get_temporary_elements()
+        return res
 
     def get_stack_v(self):
         # If stack is non-empty, we return last max req verbosity from stack; -1 otherwise (no requirement)
@@ -241,35 +258,36 @@ class Journal():
         else:
             self.stack_agent = None
 
-    # fancy printing methods
-
-    def cur_highlight(self, raw):
-        return(color.BOLD + raw + color.LIGHT)
+    # ------------------------ Fancy printing methods -------------------------
 
     def commit_last_line(self, padding_length = 0):
         if self.last_printed_line is not None:
             print(self.pipe_stack(self.last_printed_depth) + self.last_printed_line + ' ' * padding_length)
             self.last_printed_line = None
 
-    def preview_print(self, msg, update_last_printed_depth = True):
+    def preview_print(self, msg, update_last_printed_depth = True, temporary_elements = True):
         # If fancy printing is enabled, we always pre-print the last line in bold
         if update_last_printed_depth:
             self.last_printed_depth = self.depth
         self.last_printed_line = msg
-        print(self.pre(add_progress_bar = True, enforce_depth = self.last_printed_depth) + self.cur_highlight(msg), end="\r")
+        print(self.pre(enforce_depth = self.last_printed_depth, temporary_elements = temporary_elements) + color.bold(msg), end="\r")
 
     def reload_preview(self):
-        if self.print_on_the_fly and self.fancy_printing:
+        if self.print_on_the_fly and self.fancy_printing and self.last_printed_line is not None:
             self.preview_print(self.last_printed_line, update_last_printed_depth = False)
 
-    # Write method
+    # ----------------------------- Write method ------------------------------
 
-    def write(self, msg, v = -1, prevent_printing_on_the_fly = False, plain_msg = None, agent = None, padding_length = None):
-        # Writes a message inside current routine at current depth
+    def write_line(self, msg, v = -1, prevent_printing_on_the_fly = False, record_to_journal = True, plain_msg = None, agent = None, temporary_elements = True, padding_length = None):
+        # Internal method to display message for which both fancy text and
+        # plaintext are known.
+        # This method simply prints one line.
 
-        # Only input padding_length manually when the length needs to be reserved before altering the semaphor status (like on finishing semaphor events)
+        if self.verbosity < max(v, self.get_stack_v()):
+            return
+
         if padding_length is None:
-            padding_length = self.semaphor.padding_length
+            padding_length = self.get_temporary_elements_width()
 
         if plain_msg is None:
             plain_msg = msg
@@ -278,29 +296,140 @@ class Journal():
         msg = agent_pre + msg
         plain_msg = agent_plain_pre + plain_msg
 
-        if self.verbosity >= max(v, self.get_stack_v()):
+        if len(plain_msg) > self.max_allowed_w():
+            # We print the plain message aggressively trimmed.
+            if temporary_elements:
+                msg = plain_msg[:max(0, self.max_allowed_w() - padding_length)]
+            else:
+                msg = plain_msg[:max(0, self.max_allowed_w())]
+            plain_msg = plain_msg[:max(0, self.max_allowed_w())]
 
-            self.journal_text += self.pre(False) + plain_msg + "\n"
-            if self.print_on_the_fly and not prevent_printing_on_the_fly:
-                if self.fancy_printing:
-                    # We firstly print the last submitted line, and then the preprint of the current line
-                    self.commit_last_line(padding_length)
-                    self.preview_print(msg)
-                else:
-                    # crude printing only
-                    print(self.pre() + plain_msg)
+        if record_to_journal:
+            self.journal_text += self.pre(allow_fancy = False) + plain_msg + "\n"
+        if self.print_on_the_fly and not prevent_printing_on_the_fly:
+            if self.fancy_printing:
+                # We firstly print the last submitted line, and then the preprint of the current line
+                self.commit_last_line(padding_length)
+                self.preview_print(msg, temporary_elements = temporary_elements)
+            else:
+                # crude printing only
+                print(self.pre(allow_fancy = False) + plain_msg)
 
-    # Special object printing methods
+
+    def write(self, msg, v = -1, w = None, n = 6, min_w = None, prevent_printing_on_the_fly = False, agent = None, temporary_elements = True, padding_length = None):
+        # Writes a message inside current routine at current depth
+        # Arguments:
+        #   -msg: Text to be printed. Crudely converted to string if needed.
+        #         Must be plaintext (no ANSI escape codes).
+        #   -v: verbosity. Only prints if lower than system verbosity.
+        #   -w: Maximum width of the output, in characters.
+        #   -n: How many characters can be pushed from end of one line to the
+        #       start of the next one to prevent linebreaking inside words.
+        #   -min_w: Minimum width of the output, in characters. If the value of
+        #           w drops below min_w, no printing occurs.
+        #   -prevent_printing_on_the_fly: Recorded to the Journal text, but not
+        #                                 displayed in the output.
+        #   -agent: Agent ID of write author. Agent tag is added conditionally.
+        #   -temporary_elements: Whether to include them. Set to False only for
+        #                        multi-line batches of pre-computed text.
+        #   -padding_length: How much padding is printed on the right side of
+        #                    the message (to erase temporary elements).
+
+        # Only input padding_length manually when the length needs to be reserved before altering the semaphor status (like on finishing semaphor events)
+
+        msg = str(msg)
+
+        if "\x1b" in msg:
+            self.error("Input to the write method must not contain ANSI escape characters.")
+
+        if self.verbosity < max(v, self.get_stack_v()):
+            return
+
+        # Normalise arguments
+        agent_pre, agent_plain_pre = self.get_agent_tag(agent)
+        if padding_length is None:
+            padding_length = self.get_temporary_elements_width()
+        w = self.max_allowed_w(w)
+        if min_w is None:
+            # We must be allowed to print an asterism or the agent tag unbroken
+            min_w = max(len(Journal.asterism), len(agent_plain_pre))
+        # We must reserve space for all temporary elements
+        if temporary_elements:
+            min_w += padding_length
+
+        if w < min_w:
+            return
+
+
+        # We firstly append the plain agent tag placeholder to msg in order to
+        # properly wrap it.
+        # Non-empty agent tags always end with a trailing space, which
+        # ensures we can linebreak on that space if necessary.
+        if agent_plain_pre:
+            msg = agent_plain_pre + msg
+
+        sequenced_msg = PMU_funcs.wrap_text(msg, w, min_w, hyphenate = True, n = n)
+
+        # Now we write the message line by line to plaintext journal.
+        for i in range(len(sequenced_msg)):
+            self.journal_text += self.pre(allow_fancy = False) + sequenced_msg[i] + "\n"
+
+        if not sequenced_msg:
+            return
+
+        # We now reserve enough space in the last line for the temporary
+        # elements. If there isn't enough space, we add an empty line to the
+        # end, which will simply display the temporary elements.
+        if len(sequenced_msg[-1]) > w - padding_length:
+            sequenced_msg.append("")
+
+        # We now make the agent pre fancy
+        if self.fancy_printing:
+            sequenced_msg[0] = agent_pre + sequenced_msg[0][len(agent_plain_pre):]
+
+        if self.print_on_the_fly and not prevent_printing_on_the_fly:
+            if self.fancy_printing:
+                # We firstly print the last submitted line
+                self.commit_last_line(padding_length)
+
+                for i in range(len(sequenced_msg) - 1):
+                    print(self.pre(temporary_elements = False) + sequenced_msg[i])
+
+                self.preview_print(sequenced_msg[-1], temporary_elements = temporary_elements)
+            else:
+                # crude printing only
+                for i in range(len(sequenced_msg)):
+                    print(self.pre(allow_fancy = False) + sequenced_msg[i])
+
+    # -------------------- Special object printing methods --------------------
+
+    def print_precomputed_batch(self, fancy_lines, plain_lines, v = -1, agent = None):
+        # If agent needs to be printed, we print it on the top
+        agent_pre, agent_plain_pre = self.get_agent_tag(agent)
+        if agent_plain_pre:
+            self.write_line("", v = v, agent = agent, temporary_elements = False)
+
+        if len(fancy_lines) == 0:
+            # fancy lines were not initialised
+            for i in range(len(plain_lines)):
+                self.write_line(plain_lines[i], v = v, agent = None, temporary_elements = False)
+        else:
+            for i in range(len(plain_lines)):
+                self.write_line(fancy_lines[i], v = v, plain_msg = plain_lines[i], agent = None, temporary_elements = False)
+
+        # If temporary elements need to be printed, we print them here
+        if self.get_temporary_elements_width() > 0:
+            self.write_line("", v = v, record_to_journal = False, agent = None)
 
     def warning(self, msg, v = -1, agent = None):
         fancy_msg = color.BRIGHT_YELLOW + color.BOLD + "WARNING" + color.END + ": " + str(msg)
         plain_msg = "WARNING: " + str(msg)
-        self.write(fancy_msg, v, plain_msg = plain_msg, agent = agent)
+        self.write_line(fancy_msg, v, plain_msg = plain_msg, agent = agent)
 
     def error(self, msg, v = -1, agent = None, err = ValueError):
         fancy_msg = color.BRIGHT_RED + color.BOLD + "ERROR" + color.END + ": " + color.bg.RED + str(msg) + color.bg.DEFAULT
         plain_msg = "ERROR: " + str(msg)
-        self.write(fancy_msg, v, plain_msg = plain_msg, agent = agent)
+        self.write_line(fancy_msg, v, plain_msg = plain_msg, agent = agent)
         # Unless otherwise specified, we raise an exception of the proper type
         if err is not None:
             raise err(str(msg))
@@ -309,43 +438,44 @@ class Journal():
         # std_object is an object with the following properties:
         #   1. It is either a dict or a list
         #   2. Every element is either a valid std_object or a string
+
+        # If agent needs to be printed, we print it on the top
+        agent_pre, agent_plain_pre = self.get_agent_tag(agent)
+        if agent_plain_pre:
+            self.write_line("", v = v, agent = agent, temporary_elements = False)
+
         def peel_layer(cur_std_object, key = None, itemize_depth = 0):
             if isinstance(cur_std_object, dict):
                 if key is not None:
                     plain_msg = " " * (2 * itemize_depth) + "-" + str(key)
-                    if self.fancy_printing:
-                        self.write(" " * (2 * itemize_depth) + color.BRIGHT_YELLOW + "-" + color.END + str(key), plain_msg = plain_msg, agent = agent)
-                    else:
-                        self.write(plain_msg, agent = agent)
+                    self.write_line(" " * (2 * itemize_depth) + color.BRIGHT_YELLOW + "-" + color.END + str(key), v = v, plain_msg = plain_msg, agent = None, temporary_elements = False)
                 for label, value in cur_std_object.items():
                     peel_layer(value, label, itemize_depth + 1)
             elif isinstance(cur_std_object, list):
                 if key is not None:
                     plain_msg = " " * (2 * itemize_depth) + "-" + str(key)
-                    if self.fancy_printing:
-                        self.write(" " * (2 * itemize_depth) + color.BRIGHT_YELLOW + "-" + color.END + str(key), plain_msg = plain_msg, agent = agent)
-                    else:
-                        self.write(plain_msg, agent = agent)
+                    self.write_line(" " * (2 * itemize_depth) + color.BRIGHT_YELLOW + "-" + color.END + str(key), v = v, plain_msg = plain_msg, agent = None, temporary_elements = False)
                 for i in range(len(cur_std_object)):
                     peel_layer(cur_std_object[i], str(i + 1), itemize_depth + 1)
             else:
                 plain_msg = " " * (2 * itemize_depth) + f"-{key}: {cur_std_object}"
-                if self.fancy_printing:
-                    self.write(" " * (2 * itemize_depth) + color.BRIGHT_YELLOW + "-" + color.END + f"{key}: {cur_std_object}", plain_msg = plain_msg, v = v, agent = agent)
-                else:
-                    self.write(plain_msg, v = v, agent = agent)
+                self.write_line(" " * (2 * itemize_depth) + color.BRIGHT_YELLOW + "-" + color.END + f"{key}: {cur_std_object}", v = v, plain_msg = plain_msg, agent = None, temporary_elements = False)
 
         peel_layer(std_object)
+        # If temporary elements need to be printed, we print them here
+        if self.get_temporary_elements_width() > 0:
+            self.write_line("", v = v, record_to_journal = False, agent = None)
 
     def print_matrix(self, m, label, dec_points = 5, max_rows = 11, v = -1, agent = None):
 
         # First, we create the label prefix
         fancy_print_queue = []
         plain_print_queue = []
-        def pq_app(msg, i):
-            if self.fancy_printing:
-                fancy_print_queue[i] += msg
-            plain_print_queue[i] += msg
+        def pq_app(msg, i, plain_msg = None):
+            if plain_msg is None:
+                plain_msg = msg
+            fancy_print_queue[i] += msg
+            plain_print_queue[i] += plain_msg
         no_of_rows = min(len(m), max_rows)
 
         def rdec(n):
@@ -361,15 +491,15 @@ class Journal():
         fancy_pre_col = []
         plain_pre_col = []
         if no_of_rows == 1:
-            if self.fancy_printing:
-                fancy_pre_col = [color.BRIGHT_YELLOW + "(" + color.END]
+            fancy_pre_col = [color.fg_highlight('yellow', '(', True)]
             plain_pre_col = ["("]
         else:
-            if self.fancy_printing:
-                fancy_pre_col = [color.BRIGHT_YELLOW + "/" + color.END]
-                for i in range(no_of_rows - 2):
-                    fancy_pre_col.append(color.BRIGHT_YELLOW + "|" + color.END)
-                fancy_pre_col.append(color.BRIGHT_YELLOW + "\\" + color.END)
+            # fancy
+            fancy_pre_col = [color.fg_highlight('yellow', '/', True)]
+            for i in range(no_of_rows - 2):
+                fancy_pre_col.append(color.fg_highlight('yellow', '|', True))
+            fancy_pre_col.append(color.fg_highlight('yellow', '\\', True))
+            # plain
             plain_pre_col = ["/"]
             for i in range(no_of_rows - 2):
                 plain_pre_col.append("|")
@@ -377,12 +507,10 @@ class Journal():
 
         for i in range(no_of_rows):
             if i == no_of_rows // 2:
-                if self.fancy_printing:
-                    fancy_print_queue.append(f"{label} = {fancy_pre_col[i]}")
+                fancy_print_queue.append(f"{label} = {fancy_pre_col[i]}")
                 plain_print_queue.append(f"{label} = {plain_pre_col[i]}")
             else:
-                if self.fancy_printing:
-                    fancy_print_queue.append(" " * (len(label) + 3) + f"{fancy_pre_col[i]}")
+                fancy_print_queue.append(" " * (len(label) + 3) + f"{fancy_pre_col[i]}")
                 plain_print_queue.append(" " * (len(label) + 3) + f"{plain_pre_col[i]}")
 
 
@@ -398,9 +526,9 @@ class Journal():
         if do_rows_need_trimming:
             trim_N = 0 # number of entries we can display
             row_leeway = self.max_row_width - len(Journal.pipe) * self.depth - len(label) - 6 - col_width[-1]
-            while(sum(col_width[:trim_N]) <= row_leeway and trim_N < len(m) - 1):
+            while(sum(col_width[:trim_N]) <= row_leeway and trim_N < len(m[0]) - 1):
                 trim_N += 1
-            trim_N -= 1
+            trim_N = max(0, trim_N - 1)
 
         if not do_rows_need_trimming:
             # We can print the entire row
@@ -417,8 +545,8 @@ class Journal():
                         pq_app(PMU_funcs.st(rdec(m[i][j]), col_width[j]), i)
                     pq_app(" " + PMU_funcs.st(rdec(m[i][len(m[i]) - 1]), col_width[-1] - 2), i)
                 for j in range(len(m[0]) - 1):
-                    pq_app(PMU_funcs.st("...", col_width[j]), max_rows - 2)
-                pq_app(" " + PMU_funcs.st("...", col_width[-1] - 2), max_rows - 2)
+                    pq_app(color.fg_highlight('yellow', PMU_funcs.st("...", col_width[j]), True), max_rows - 2, PMU_funcs.st("...", col_width[j]))
+                pq_app(" " + color.fg_highlight('yellow', PMU_funcs.st("...", col_width[-1] - 2), True), max_rows - 2, " " + PMU_funcs.st("...", col_width[-1] - 2))
                 for j in range(len(m[-1]) - 1):
                     pq_app(PMU_funcs.st(rdec(m[-1][j]), col_width[j]), max_rows - 1)
                 pq_app(" " + PMU_funcs.st(rdec(m[-1][len(m[-1]) - 1]), col_width[-1] - 2), max_rows - 1)
@@ -429,33 +557,30 @@ class Journal():
                 for i in range(len(m)):
                     for j in range(trim_N):
                         pq_app(PMU_funcs.st(rdec(m[i][j]), col_width[j]), i)
-                    pq_app("... " + PMU_funcs.st(rdec(m[i][len(m[i]) - 1]), col_width[-1] - 2), i)
+                    pq_app(color.fg_highlight('yellow', "... ", True) + PMU_funcs.st(rdec(m[i][len(m[i]) - 1]), col_width[-1] - 2), i, "... " + PMU_funcs.st(rdec(m[i][len(m[i]) - 1]), col_width[-1] - 2))
             else:
                 # we trim rows and columns
                 for i in range(max_rows - 2):
                     for j in range(trim_N):
                         pq_app(PMU_funcs.st(rdec(m[i][j]), col_width[j]), i)
-                    pq_app("... " + PMU_funcs.st(rdec(m[i][len(m[i]) - 1]), col_width[-1] - 2), i)
+                    pq_app(color.fg_highlight('yellow', "... ", True) + PMU_funcs.st(rdec(m[i][len(m[i]) - 1]), col_width[-1] - 2), i, "... " + PMU_funcs.st(rdec(m[i][len(m[i]) - 1]), col_width[-1] - 2))
                 for j in range(trim_N):
-                    pq_app(PMU_funcs.st("...", col_width[j]), max_rows - 2)
-                pq_app("    " + PMU_funcs.st("...", col_width[-1] - 2), max_rows - 2)
+                    pq_app(color.fg_highlight('yellow', PMU_funcs.st("...", col_width[j]), True), max_rows - 2, PMU_funcs.st("...", col_width[j]))
+                pq_app("    " + color.fg_highlight('yellow', PMU_funcs.st("...", col_width[-1] - 2), True), max_rows - 2, "    " + PMU_funcs.st("...", col_width[-1] - 2))
                 for j in range(trim_N):
                     pq_app(PMU_funcs.st(rdec(m[-1][j]), col_width[j]), max_rows - 1)
-                pq_app("... " + PMU_funcs.st(rdec(m[-1][len(m[-1]) - 1]), col_width[-1] - 2), max_rows - 1)
+                pq_app(color.fg_highlight('yellow', "... ", True) + PMU_funcs.st(rdec(m[-1][len(m[-1]) - 1]), col_width[-1] - 2), max_rows - 1, "... " + PMU_funcs.st(rdec(m[-1][len(m[-1]) - 1]), col_width[-1] - 2))
 
-        for i in range(len(plain_print_queue)):
-            if self.fancy_printing:
-                self.write(fancy_print_queue[i], plain_msg = plain_print_queue[i], v = v, agent = agent)
-            else:
-                self.write(plain_print_queue[i], v = v, agent = agent)
-
+        self.print_precomputed_batch(fancy_print_queue, plain_print_queue, v = v, agent = agent)
 
 
 
     def print_table(self, table_name, column_names, row_names, list_of_rows, subtable_borders = None, w = None, align = None, hline = None, header_separation = 2, v = -1, agent = None):
         # column_names[N], row_names[M], list_of_rows[M][N]
+        # subtable_borders is a list of column indices which have a horizontal
+        # separator on their right side.
         # w[N + 1] is the maximal allowed width for each column, starting with
-        # the row name column
+        # the row name column.
         # align[N] is the align mode for each column. These can be:
         #   -None: completely automatic
         #   -single char:
@@ -481,6 +606,7 @@ class Journal():
         default_hline = "ua"
         hline_options = [['u', 's'], ['a', 'f', 'c', 'n']]
 
+        # We normalise function arguments
         if subtable_borders is None:
             subtable_borders = []
         if w is None:
@@ -489,6 +615,20 @@ class Journal():
             align = [None] * len(column_names)
         if not isinstance(align, list):
             align = [align] * len(column_names)
+
+        # Input validation
+        if len(w) != len(column_names) + 1:
+            self.error(f"Incorrect length of minimum-width list: {len(w)} given, {len(column_names) + 1} (No. of cols + 1) expected.")
+
+        if len(align) != len(column_names):
+            self.error(f"Incorrect length of alignment specification list: {len(align)} given, {len(column_names)} (No. of cols) expected.")
+
+        if len(row_names) != len(list_of_rows):
+            self.error(f"Row number mismatch: {len(list_of_rows)} rows given, {len(row_names)} row labels given.")
+
+        if any(len(row) != len(column_names) for row in list_of_rows):
+            self.error("Incorrect number of cells in a data row.")
+
         sequenced_cells = [] # [M][N] = [line1, line2, ...]
         sequenced_column_names = [] # [N] = [line1, line2, ...]
         sequenced_row_names = [] # [M] = [line1, line2, ...]
@@ -500,16 +640,16 @@ class Journal():
         if isinstance(hline, (str, list, tuple)):
             if len(hline) == 1:
                 if hline[0] in hline_options[0]:
-                    hline = hline + default_hline[1]
+                    hline = hline[0] + default_hline[1]
                 elif hline[0] in hline_options[1]:
-                    hline = default_hline[0] + hline
+                    hline = default_hline[0] + hline[0]
                 else:
                     hline = default_hline
             elif len(hline) == 2:
                 if hline[0] not in hline_options[0]:
-                    hline = default_hline[0] + hline[1:]
+                    hline = default_hline[0] + hline[1]
                 if hline[1] not in hline_options[1]:
-                    hline = hline[:1] + default_hline[1]
+                    hline = hline[0] + default_hline[1]
             else:
                 hline = default_hline
         else:
@@ -573,28 +713,6 @@ class Journal():
             for i in range(len(row_names)):
                 sequenced_cells[i][j] = PMU_funcs.valign(sequenced_cells[i][j], row_heights[i], align = cur_valign)
 
-
-
-        """for i in range(len(row_names)):
-            sequenced_cells.append([])
-        for j in range(len(column_names)):
-            sequenced_column_names.append(PMU_funcs.wrap_and_halign(column_names[j], max_len_by_column[j], align = 'cb'))
-            if header_height < len(sequenced_column_names[j]):
-                header_height = len(sequenced_column_names[j])
-
-            for i in range(len(row_names)):
-                sequenced_cells[i].append(PMU_funcs.wrap_and_halign(list_of_rows[i][j], max_len_by_column[j], align = align[j]))
-                if row_heights[i] < len(sequenced_cells[i][j]):
-                    row_heights[i] = len(sequenced_cells[i][j])
-        for j in range(len(column_names)):
-            cur_valign = PMU_funcs.standard_align(None, align[j])[1]
-            sequenced_column_names[j] = PMU_funcs.valign(sequenced_column_names[j], header_height, align = "b")
-            for i in range(len(row_names)):
-                sequenced_cells[i][j] = PMU_funcs.valign(sequenced_cells[i][j], row_heights[i], align = cur_valign)
-        for i in range(len(row_names)):
-            sequenced_row_names.append(PMU_funcs.wrap_and_align(row_names[i], max_len_row_names, row_heights[i], align = "rt"))
-        sequenced_table_name = PMU_funcs.wrap_and_align(table_name, max_len_row_names, header_height, align = "c", n = max_len_row_names)"""
-
         # We initialise the per-row hline instruction
         if hline[1] == 'n':
             hline_per_row = [False] * len(row_names)
@@ -623,7 +741,14 @@ class Journal():
                 row_heights[i] += 1
 
 
+        # We calculate header_length, the plaintext width of the table
+        header_length = max_len_row_names + header_separation + vert_sep_len
+
         # We now queue in the header row
+        for i in range(len(column_names)):
+            header_length += max_len_by_column[i] + header_separation
+            if i in subtable_borders:
+                header_length += vert_sep_len
 
         for k in range(header_height):
 
@@ -636,13 +761,10 @@ class Journal():
                 fancy_print_queue.append(fancy_header_str)
 
             plain_header_str = PMU_funcs.st(sequenced_table_name[k], max_len_row_names + header_separation) + plain_vert_sep
-            header_length = max_len_row_names + header_separation + vert_sep_len
             for i in range(len(column_names)):
                 plain_header_str += PMU_funcs.st(sequenced_column_names[i][k], max_len_by_column[i] + header_separation)
-                header_length += max_len_by_column[i] + header_separation
                 if i in subtable_borders:
                     plain_header_str += plain_vert_sep
-                    header_length += vert_sep_len
             plain_print_queue.append(plain_header_str)
 
 
@@ -676,12 +798,9 @@ class Journal():
             fancy_print_queue.append(color.fg_highlight('yellow', "-" * header_length, True))
         plain_print_queue.append("-" * header_length)
 
-        for i in range(len(plain_print_queue)):
-            if self.fancy_printing:
-                self.write(fancy_print_queue[i], plain_msg = plain_print_queue[i], v = v, agent = agent)
-            else:
-                self.write(plain_print_queue[i], v = v, agent = agent)
+        self.print_precomputed_batch(fancy_print_queue, plain_print_queue, v = v, agent = agent)
 
+    """
     def print_paragraph(self, msg, w = None, v = -1, agent = None, n = 6, min_w = None):
         # msg must be plain text
         if min_w is None:
@@ -689,7 +808,7 @@ class Journal():
         wrapped_msg = PMU_funcs.wrap_text(msg, w = self.max_allowed_w(w), min_w = min_w)
 
         for line in wrapped_msg:
-            self.write(line, v = v, agent = agent)
+            self.write(line, v = v, agent = agent)"""
 
 
     def print_dinkus(self, w = None, v = -1, agent = None):
@@ -697,7 +816,7 @@ class Journal():
         if w < len(Journal.asterism):
             # Cannot print anything
             return
-        self.write(PMU_funcs.st(color.fg_highlight('yellow', Journal.asterism, True), w, '-', plain_len = len(Journal.asterism)))
+        self.write_line(PMU_funcs.st(color.fg_highlight('yellow', Journal.asterism, True), w, '-', plain_len = len(Journal.asterism)), v = v, plain_msg = PMU_funcs.st(Journal.asterism, w, '-'), agent = agent)
 
     # Routine stack management
 
@@ -723,7 +842,7 @@ class Journal():
 
         self.routine_stack.append([header, max(v, self.get_stack_v()), agent, new_ID])
 
-        self.write(header_fancy, v, agent = agent, plain_msg = header)
+        self.write_line(header_fancy, v, agent = agent, plain_msg = header)
         self.depth += 1
 
         self.update_stack_agent()
@@ -781,7 +900,7 @@ class Journal():
             exit_msg_fancy = " " + semaphor_exit_msg_fancy
             exit_msg_plain = " " + semaphor_exit_msg_plain
         self.depth -= 1
-        self.write(Journal.gradual_fg_color[self.depth % len(Journal.gradual_fg_color)] + "\\_" + color.END + exit_msg_fancy, last_routine[1], plain_msg = "\\_" + exit_msg_plain, padding_length = padding_length)
+        self.write_line(Journal.gradual_fg_color[self.depth % len(Journal.gradual_fg_color)] + "\\_" + color.END + exit_msg_fancy, last_routine[1], plain_msg = "\\_" + exit_msg_plain, padding_length = padding_length)
         self.update_stack_agent()
         if was_it_semaphored:
             return process_duration
@@ -795,14 +914,14 @@ class Journal():
 
         if self.yes is not None:
             if self.yes:
-                self.write(question + " (Automatically decided 'yes')", agent = agent)
+                self.write_line(question + " (Automatically decided '" + color.fg_highlight('green', 'yes', False) + "')", plain_msg = question + " (Automatically decided 'yes')", agent = agent)
             else:
-                self.write(question + " (Automatically decided 'no')", agent = agent)
+                self.write_line(question + " (Automatically decided '" + color.fg_highlight('red', 'no', False) + "')", plain_msg = question + " (Automatically decided 'no')", agent = agent)
             return(self.yes)
 
         if not self.print_on_the_fly:
             # Assume yes
-            self.write(question + " (Assumed 'yes')", agent = agent)
+            self.write_line(question + " (Assumed '" + color.fg_highlight('green', 'yes', False) + "')", plain_msg = question + " (Assumed 'yes')", agent = agent)
             return(True)
 
         # First, we commit the previous line
@@ -814,16 +933,16 @@ class Journal():
 
         question_print = self.pre() + agent_plain_pre + question + " (y / n) "
         if self.fancy_printing:
-            question_print = self.pre() + agent_pre + self.cur_highlight(question) + " (" + color.GREEN + "y" + color.END + " / " + color.RED + "n" + color.END + ") "
+            question_print = self.pre() + agent_pre + color.bold(question) + " (" + color.fg_highlight('green', 'y', False) + " / " + color.fg_highlight('red', 'n', False) + ") "
 
-        while ans.lower() not in Journal.valid_answers:
-            ans = input(question_print)
+        while ans not in Journal.valid_answers:
+            ans = input(question_print).strip().lower()
 
         if ans in Journal.answer_strings["yes"]:
-            self.write(question + "(Answered 'yes')", prevent_printing_on_the_fly = True)
+            self.write_line(question + " (Answered 'yes')", prevent_printing_on_the_fly = True)
             return(True)
         if ans in Journal.answer_strings["no"]:
-            self.write(question + "(Answered 'no')", prevent_printing_on_the_fly = True)
+            self.write(question + " (Answered 'no')", prevent_printing_on_the_fly = True)
             return(False)
 
     # -------------- Agent tag management -------------------
@@ -851,33 +970,7 @@ class Journal():
             return ("[" + color.fg_highlight(self.agent_tags[ID]["color"][0], self.agent_tags[ID]["label"], bright = self.agent_tags[ID]["color"][1]) + "] ", "[" + self.agent_tags[ID]["label"] + "] ")
 
 # -----------------------------------------------------------------------------
-# --------------------------- class DisabledJournal ---------------------------
-# -----------------------------------------------------------------------------
-# Pass this as a Journal to prevent printing without throwing exceptions on
-# method calls
-
-class DisabledJournal():
-    def __init__(self, verbosity = 0, print_on_the_fly = True, fancy_printing = True, max_row_width = 200):
-        pass
-
-    def write(self, msg, v = -1, prevent_printing_on_the_fly = False):
-        pass
-
-    def enter(self, header, v = -1, semaphored = False, **kwargs):
-        pass
-
-    def exit(self, end_message = None):
-        pass
-
-    def print_matrix(self, m, label, dec_points = 5, max_rows = 11):
-        pass
-
-    def print_table(self, table_name, column_names, row_names, list_of_rows, subtable_borders = [], header_separation = 2):
-        pass
-
-    def update_semaphor_event(self, tau):
-        pass
-
 # ---------------------------- Singleton instance -----------------------------
+# -----------------------------------------------------------------------------
 
 journal = Journal()

@@ -110,7 +110,7 @@ class Access_Point():
         # Prints the manual for the access point, i.e. the required parameters
         Access_Point.AP_Correspondent.enter("This is a computation access point.")
         Access_Point.AP_Correspondent.write(f"Script name: {self.name}")
-        Access_Point.AP_Correspondent.print_paragraph(self.desc, w = 80)
+        Access_Point.AP_Correspondent.write(self.desc, w = 80)
         Access_Point.AP_Correspondent.print_dinkus(w = 80)
 
         """params_obj = {}
@@ -125,7 +125,7 @@ class Access_Point():
         # TODO add wrap_at_w = [None, none, 80] param to print_table so we can make certain cells wrap text to multi lines
         param_table_name  = "Parameters"
         param_table_cols  = ["type", "default", "description"]
-        param_table_w     = [9, None, None, 100]
+        param_table_w     = [None, None, None, 100]
         param_table_align = ["ct", "ct", "lt"]
         param_table_rows  = []
         param_table_data  = []

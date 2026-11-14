@@ -124,3 +124,7 @@ class color:
     @staticmethod
     def underline(msg):
         return color.UNDERLINE + msg + color.NOTUNDERLINE
+
+    @staticmethod
+    def bold(msg):
+        return color.BOLD + msg + color.LIGHT

@@ -164,11 +164,12 @@ class Printable_Semaphor(Semaphor):
 
     def progress_bars(self, fancy = True):
         # Creates a progress bar for each active semaphor event.
+        # Note the trailing space which anticipates separation from other text.
         if len(self.processes) == 0:
             return ""
         res = ""
         for S_ID in self.processes.keys():
             res += self.progress_bar(S_ID, fancy) + " "
-        return res[:-1]
+        return res
 
 
