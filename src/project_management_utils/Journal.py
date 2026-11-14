@@ -54,7 +54,7 @@ class Journal():
         sample_journal.write("Special objects, such as item lists, tables, or matrices, can be printed with special formatting using these methods.")
 
         sample_journal.warning("This is a sample warning.")
-        sample_journal.error("This is a sample error.")
+        sample_journal.error("This is a sample error.", err = None)
 
         sample_journal.enter("Testing item list printing...")
         sample_journal.print_itemize({
