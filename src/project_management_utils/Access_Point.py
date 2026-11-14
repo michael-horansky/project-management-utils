@@ -141,7 +141,7 @@ class Access_Point():
             param_table_data,
             w = param_table_w,
             align = param_table_align,
-            hline = 'sc')
+            hline = 'sa')
 
         """
 

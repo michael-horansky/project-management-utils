@@ -452,7 +452,7 @@ class Journal():
 
 
 
-    def print_table(self, table_name, column_names, row_names, list_of_rows, subtable_borders = [], w = None, align = None, hline = None, header_separation = 2, v = -1, agent = None):
+    def print_table(self, table_name, column_names, row_names, list_of_rows, subtable_borders = None, w = None, align = None, hline = None, header_separation = 2, v = -1, agent = None):
         # column_names[N], row_names[M], list_of_rows[M][N]
         # w[N + 1] is the maximal allowed width for each column, starting with
         # the row name column
@@ -481,6 +481,8 @@ class Journal():
         default_hline = "ua"
         hline_options = [['u', 's'], ['a', 'f', 'c', 'n']]
 
+        if subtable_borders is None:
+            subtable_borders = []
         if w is None:
             w = [None] * (len(column_names) + 1)
         if align is None:
@@ -497,9 +499,9 @@ class Journal():
         # here we normalise hline
         if isinstance(hline, (str, list, tuple)):
             if len(hline) == 1:
-                if hline in hline_options[0]:
+                if hline[0] in hline_options[0]:
                     hline = hline + default_hline[1]
-                elif hline in hline_options[1]:
+                elif hline[0] in hline_options[1]:
                     hline = default_hline[0] + hline
                 else:
                     hline = default_hline
@@ -522,19 +524,58 @@ class Journal():
         plain_vert_sep = "|"
         vert_sep_len = len(plain_vert_sep)
 
-        max_len_row_names = PMU_funcs.min_with_none(len(str(table_name)), w[0])
+        max_len_row_names = len(str(table_name))
         for row_name in row_names:
             if len(str(row_name)) > max_len_row_names:
-                max_len_row_names = PMU_funcs.min_with_none(len(row_name), w[0])
+                max_len_row_names = len(str(row_name))
+        max_len_row_names = PMU_funcs.min_with_none(max_len_row_names, w[0])
         max_len_by_column = []
         for j in range(len(column_names)):
-            max_len_by_column.append(PMU_funcs.min_with_none(len(str(column_names[j])), w[j + 1]))
+            max_len_by_column.append(len(str(column_names[j])))
             for i in range(len(row_names)):
                 if max_len_by_column[j] < len(str(list_of_rows[i][j])):
-                    max_len_by_column[j] = PMU_funcs.min_with_none(len(str(list_of_rows[i][j])), w[j + 1])
+                    max_len_by_column[j] = len(str(list_of_rows[i][j]))
+            max_len_by_column[j] = PMU_funcs.min_with_none(max_len_by_column[j], w[j + 1])
 
         # We now convert each cell to a list of lines to take care of wrapping the text
+
+        # First, we wrap_and_halign everything to calculate the minimal required heights per row
+
+        sequenced_table_name = PMU_funcs.wrap_and_halign(table_name, max_len_row_names, align = "c", n = max_len_row_names)
+        header_height = len(sequenced_table_name)
+
         for i in range(len(row_names)):
+            sequenced_row_names.append(PMU_funcs.wrap_and_halign(row_names[i], max_len_row_names, align = "rt", n = max_len_row_names))
+            row_heights[i] = len(sequenced_row_names[i])
+
+        for i in range(len(row_names)):
+            sequenced_cells.append([])
+        for j in range(len(column_names)):
+            sequenced_column_names.append(PMU_funcs.wrap_and_halign(column_names[j], max_len_by_column[j], align = 'cb'))
+            if header_height < len(sequenced_column_names[j]):
+                header_height = len(sequenced_column_names[j])
+
+            for i in range(len(row_names)):
+                sequenced_cells[i].append(PMU_funcs.wrap_and_halign(list_of_rows[i][j], max_len_by_column[j], align = align[j]))
+                if row_heights[i] < len(sequenced_cells[i][j]):
+                    row_heights[i] = len(sequenced_cells[i][j])
+
+        # Now we apply valign to all cells to normalise heights
+
+        sequenced_table_name = PMU_funcs.valign(sequenced_table_name, header_height, align = 'c')
+
+        for i in range(len(row_names)):
+            sequenced_row_names[i] = PMU_funcs.valign(sequenced_row_names[i], row_heights[i], align = 't')
+
+        for j in range(len(column_names)):
+            cur_valign = PMU_funcs.standard_align(None, align[j])[1]
+            sequenced_column_names[j] = PMU_funcs.valign(sequenced_column_names[j], header_height, align = "b")
+            for i in range(len(row_names)):
+                sequenced_cells[i][j] = PMU_funcs.valign(sequenced_cells[i][j], row_heights[i], align = cur_valign)
+
+
+
+        """for i in range(len(row_names)):
             sequenced_cells.append([])
         for j in range(len(column_names)):
             sequenced_column_names.append(PMU_funcs.wrap_and_halign(column_names[j], max_len_by_column[j], align = 'cb'))
@@ -552,7 +593,7 @@ class Journal():
                 sequenced_cells[i][j] = PMU_funcs.valign(sequenced_cells[i][j], row_heights[i], align = cur_valign)
         for i in range(len(row_names)):
             sequenced_row_names.append(PMU_funcs.wrap_and_align(row_names[i], max_len_row_names, row_heights[i], align = "rt"))
-        sequenced_table_name = PMU_funcs.wrap_and_align(sequenced_table_name, max_len_row_names, header_height, align = "c", n = max_len_row_names)
+        sequenced_table_name = PMU_funcs.wrap_and_align(table_name, max_len_row_names, header_height, align = "c", n = max_len_row_names)"""
 
         # We initialise the per-row hline instruction
         if hline[1] == 'n':

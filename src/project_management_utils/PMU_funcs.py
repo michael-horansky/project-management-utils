@@ -41,6 +41,9 @@ def wrap_text(text, w, min_w = None, hyphenate = False, n = 6):
         # Cannot print anything
         return []
 
+    # n cannot be more than width - 1
+    n = min(n, w - 1)
+
     while len(text) > w:
         considered = text[:w]
         rest = text[w:]
@@ -51,7 +54,7 @@ def wrap_text(text, w, min_w = None, hyphenate = False, n = 6):
             text = rest.lstrip()
         else:
             # Look for a space among the last n characters.
-            search_start = max(0, w - n)
+            search_start = w - n
             break_at = considered.rfind(" ", search_start)
 
             if break_at != -1:
@@ -146,11 +149,11 @@ def valign(a, h, c = "", align = "c"):
         # bottom align
         return [c] * diff + a
 
-def wrap_and_halign(obj, w, c = ' ', align = None, min_w = None, hyphenate = None):
+def wrap_and_halign(obj, w, c = ' ', align = None, min_w = None, hyphenate = None, n = 6):
     if hyphenate is None:
         hyphenate = auto_hyphenate(obj)
     std_align = standard_align(obj, align)
-    lines = wrap_text(str(obj), w, min_w = min_w, hyphenate = hyphenate)
+    lines = wrap_text(str(obj), w, min_w = min_w, hyphenate = hyphenate, n = n)
     for i in range(len(lines)):
         lines[i] = st(lines[i], w, c, std_align[0])
     return lines
