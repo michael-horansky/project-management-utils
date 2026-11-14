@@ -31,10 +31,10 @@ class Correspondent:
         return(v)
 
     # -------------- Journal methods ---------------
-    def write(self, msg, v = None):
+    def write(self, msg, v = None, w = None, n = 6, min_w = None):
         v = self.reassure_verbosity(v)
         if journal is not None:
-            journal.write(msg, v, agent = self.agent_ID)
+            journal.write(msg, v, w = w, n = n, min_w = min_w, agent = self.agent_ID)
 
     def enter(self, msg, v = None):
         v = self.reassure_verbosity(v)
