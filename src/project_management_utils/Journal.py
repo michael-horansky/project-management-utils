@@ -547,7 +547,7 @@ class Journal():
                     row_heights[i] = len(sequenced_cells[i][j])
         for j in range(len(column_names)):
             cur_valign = PMU_funcs.standard_align(None, align[j])[1]
-            sequenced_column_names[j] = PMU_funcs.valign(sequenced_column_names[j], header_height, align = cur_valign)
+            sequenced_column_names[j] = PMU_funcs.valign(sequenced_column_names[j], header_height, align = "cb")
             for i in range(len(row_names)):
                 sequenced_cells[i][j] = PMU_funcs.valign(sequenced_cells[i][j], row_heights[i], align = cur_valign)
         for i in range(len(row_names)):
