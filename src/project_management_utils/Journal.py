@@ -573,7 +573,7 @@ class Journal():
 
         if hline[0] == 's':
             # We insert an empty line to every hline-positive cell
-            for i in range(len(row_names)):
+            for i in range(len(row_names) - 1):
                 if not hline_per_row[i]:
                     continue
                 sequenced_row_names[i].append(' ' * max_len_row_names)
