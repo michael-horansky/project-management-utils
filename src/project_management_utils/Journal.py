@@ -557,15 +557,15 @@ class Journal():
         # We initialise the per-row hline instruction
         if hline[1] == 'n':
             hline_per_row = [False] * len(row_names)
-        if hline[1] == 'f':
+        elif hline[1] == 'f':
             hline_per_row = [True] * len(row_names)
-        if hline[1] == 'a':
+        elif hline[1] == 'a':
             hline_per_row = [False] * len(row_names)
             for i in range(len(row_names)):
                 if row_heights[i] > 1:
                     hline_per_row = [True] * len(row_names)
                     break
-        if hline[1] == 'c':
+        elif hline[1] == 'c':
             hline_per_row = [False] * len(row_names)
             for i in range(len(row_names)):
                 if row_heights[i] > 1:
@@ -613,12 +613,12 @@ class Journal():
 
                 if self.fancy_printing:
                     row_name_line = PMU_funcs.st(sequenced_row_names[i][k], max_len_row_names + header_separation)
-                    if hline[0] == 'u' and k == row_heights[i] - 1 and i != len(row_names) - 1:
+                    if hline[0] == 'u' and hline_per_row[i] and k == row_heights[i] - 1 and i != len(row_names) - 1:
                         row_name_line = color.underline(row_name_line)
                     fancy_cur_str = row_name_line + fancy_vert_sep
                     for j in range(len(column_names)):
                         cell_line = PMU_funcs.st(sequenced_cells[i][j][k], max_len_by_column[j] + header_separation)
-                        if hline[0] == 'u' and k == row_heights[i] - 1 and i != len(row_names) - 1:
+                        if hline[0] == 'u' and hline_per_row[i] and k == row_heights[i] - 1 and i != len(row_names) - 1:
                             cell_line = color.underline(cell_line)
                         fancy_cur_str += cell_line
                         if j in subtable_borders:
