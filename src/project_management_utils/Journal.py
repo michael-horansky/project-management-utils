@@ -454,17 +454,32 @@ class Journal():
 
     def print_table(self, table_name, column_names, row_names, list_of_rows, subtable_borders = [], w = None, align = None, hline = None, header_separation = 2, v = -1, agent = None):
         # column_names[N], row_names[M], list_of_rows[M][N]
-        # w[N + 1] is the maximal allowed width for each column, starting with the row name column
+        # w[N + 1] is the maximal allowed width for each column, starting with
+        # the row name column
         # align[N] is the align mode for each column. These can be:
         #   -None: completely automatic
         #   -single char:
-        #      -"t" = (automatic, top)
-        #      -"b" = (automatic, bottom)
-        #      -"l" = (left, automatic)
-        #      -"r" = (right, automatic)
-        #      -"c" = (center, center)
-        #   -two-char string or tuple of single chars; these specify the horizontal and vertical alignment, respectively
-        # If hline, the lowest line in each cell is underlined. If None, hline is set to True only if there exists a multi-line row.
+        #      -'t' = (automatic, top)
+        #      -'b' = (automatic, bottom)
+        #      -'l' = (left, automatic)
+        #      -'r' = (right, automatic)
+        #      -'c' = (center, center)
+        #   -two-char string or tuple of single chars; these specify the
+        #    horizontal and vertical alignment, respectively
+        # hline manages the way rows are separated from each other. It consists
+        # of two characters, or is brought to that form using autofill.
+        #   -First character specifies the form hline takes:
+        #      -'u' [default]: All cells are underlined.
+        #      -'s': Empty space between all cells
+        #   -Second character specifies to which cells and under what condition
+        #    does the hline apply:
+        #      -'a' [default]: All cells affected if at least one's height > 1.
+        #      -'f': All cells always affected.
+        #      -'c': Only cells of height > 1 affected.
+        #      -'n': Hline is never applied.
+
+        default_hline = "ua"
+        hline_options = [['u', 's'], ['a', 'f', 'c', 'n']]
 
         if w is None:
             w = [None] * (len(column_names) + 1)
@@ -478,6 +493,26 @@ class Journal():
         sequenced_table_name = None
         header_height = 0
         row_heights = [0] * len(row_names)
+
+        # here we normalise hline
+        if isinstance(hline, (str, list, tuple)):
+            if len(hline) == 1:
+                if hline in hline_options[0]:
+                    hline = hline + default_hline[1]
+                elif hline in hline_options[1]:
+                    hline = default_hline[0] + hline
+                else:
+                    hline = default_hline
+            elif len(hline) == 2:
+                if hline[0] not in hline_options[0]:
+                    hline = default_hline[0] + hline[1:]
+                if hline[1] not in hline_options[1]:
+                    hline = hline[:1] + default_hline[1]
+            else:
+                hline = default_hline
+        else:
+            hline = default_hline
+
 
         fancy_print_queue = [] # each line is an element
         plain_print_queue = []
@@ -519,17 +554,32 @@ class Journal():
             sequenced_row_names.append(PMU_funcs.wrap_and_align(row_names[i], max_len_row_names, row_heights[i], align = "rt"))
         sequenced_table_name = PMU_funcs.wrap_and_align(sequenced_table_name, max_len_row_names, header_height, align = "c", n = max_len_row_names)
 
-        if hline is None:
-            # We determine whether hline is necessary
-            if header_height > 1:
-                hline = True
-            else:
-                for i in range(len(row_names)):
-                    if row_heights[i] > 1:
-                        hline = True
-                        break
-        if hline is None:
-            hline = False
+        # We initialise the per-row hline instruction
+        if hline[1] == 'n':
+            hline_per_row = [False] * len(row_names)
+        if hline[1] == 'f':
+            hline_per_row = [True] * len(row_names)
+        if hline[1] == 'a':
+            hline_per_row = [False] * len(row_names)
+            for i in range(len(row_names)):
+                if row_heights[i] > 1:
+                    hline_per_row = [True] * len(row_names)
+                    break
+        if hline[1] == 'c':
+            hline_per_row = [False] * len(row_names)
+            for i in range(len(row_names)):
+                if row_heights[i] > 1:
+                    hline_per_row[i] = True
+
+        if hline[0] == 's':
+            # We insert an empty line to every hline-positive cell
+            for i in range(len(row_names)):
+                if not hline_per_row[i]:
+                    continue
+                sequenced_row_names[i].append(' ' * max_len_row_names)
+                for j in range(len(column_names)):
+                    sequenced_cells[i][j].append(' ' * max_len_by_column[j])
+
 
         # We now queue in the header row
 
@@ -563,12 +613,12 @@ class Journal():
 
                 if self.fancy_printing:
                     row_name_line = PMU_funcs.st(sequenced_row_names[i][k], max_len_row_names + header_separation)
-                    if hline and k == row_heights[i] - 1 and i != len(row_names) - 1:
+                    if hline[0] == 'u' and k == row_heights[i] - 1 and i != len(row_names) - 1:
                         row_name_line = color.underline(row_name_line)
                     fancy_cur_str = row_name_line + fancy_vert_sep
                     for j in range(len(column_names)):
                         cell_line = PMU_funcs.st(sequenced_cells[i][j][k], max_len_by_column[j] + header_separation)
-                        if hline and k == row_heights[i] - 1 and i != len(row_names) - 1:
+                        if hline[0] == 'u' and k == row_heights[i] - 1 and i != len(row_names) - 1:
                             cell_line = color.underline(cell_line)
                         fancy_cur_str += cell_line
                         if j in subtable_borders:
@@ -583,45 +633,6 @@ class Journal():
         if self.fancy_printing:
             fancy_print_queue.append(color.fg_highlight('yellow', "-" * header_length, True))
         plain_print_queue.append("-" * header_length)
-
-        """if self.fancy_printing:
-            fancy_header_str = PMU_funcs.st(table_name, max_len_row_names + header_separation) + fancy_vert_sep
-            for i in range(len(column_names)):
-                fancy_header_str += PMU_funcs.st(column_names[i], max_len_by_column[i] + header_separation)
-                if i in subtable_borders:
-                    fancy_header_str += fancy_vert_sep
-        plain_header_str = PMU_funcs.st(table_name, max_len_row_names + header_separation) + plain_vert_sep
-        header_length = max_len_row_names + header_separation + vert_sep_len
-        for i in range(len(column_names)):
-            plain_header_str += PMU_funcs.st(column_names[i], max_len_by_column[i] + header_separation)
-            header_length += max_len_by_column[i] + header_separation
-            if i in subtable_borders:
-                plain_header_str += plain_vert_sep
-                header_length += vert_sep_len
-
-        if self.fancy_printing:
-            fancy_print_queue.append(fancy_header_str)
-        plain_print_queue.append(plain_header_str)
-        if self.fancy_printing:
-            fancy_print_queue.append(color.BRIGHT_YELLOW + "-" * header_length + color.END)
-        plain_print_queue.append("-" * header_length)
-        for i in range(len(row_names)):
-            if self.fancy_printing:
-                fancy_cur_str = PMU_funcs.st(row_names[i], max_len_row_names + header_separation) + fancy_vert_sep
-                for j in range(len(column_names)):
-                    fancy_cur_str += PMU_funcs.st(list_of_rows[i][j], max_len_by_column[j] + header_separation)
-                    if j in subtable_borders:
-                        fancy_cur_str += fancy_vert_sep
-                fancy_print_queue.append(fancy_cur_str)
-            plain_cur_str = PMU_funcs.st(row_names[i], max_len_row_names + header_separation) + plain_vert_sep
-            for j in range(len(column_names)):
-                plain_cur_str += PMU_funcs.st(list_of_rows[i][j], max_len_by_column[j] + header_separation)
-                if j in subtable_borders:
-                    plain_cur_str += plain_vert_sep
-            plain_print_queue.append(plain_cur_str)
-        if self.fancy_printing:
-            fancy_print_queue.append(color.BRIGHT_YELLOW + "-" * header_length + color.END)
-        plain_print_queue.append("-" * header_length)"""
 
         for i in range(len(plain_print_queue)):
             if self.fancy_printing:
