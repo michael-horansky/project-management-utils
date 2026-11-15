@@ -59,8 +59,9 @@ class Journal():
         sample_journal.enter("Testing item list printing...")
         sample_journal.print_itemize({
             "print_itemize" : "Prints an itemized/enumerated list from a standard object. Supports nested lists.",
-            "nested numbered list" : ["First element", "Second element", {"this" : "First part of third element", "that" : "Second part of third element"}, "Fourth element"],
-            "nested itemized list" : {"Keyword" : "Value", "Other keyword" : "Other value"}
+            "nested numbered list (list)" : ["First element", "Second element", {"this" : "First part of third element", "that" : "Second part of third element"}, "Fourth element"],
+            "nested labelled list (dict)" : {"Keyword" : "Value", "Other keyword" : "Other value"},
+            "nested itemized list (tuple)" : ("Tuples are immutable...", ["Nested numbered list here!", "Don't forget the trailing space when creating a single-element tuple!"], "...but they can contain references to mutable objects, so don't worry about nesting other iterables inside them.")
             })
         sample_journal.exit()
 
@@ -505,7 +506,8 @@ class Journal():
                 commit_msg(itemize_depth, key, cur_std_object)
             else:
                 # We print the key on its own
-                commit_msg(itemize_depth, key)
+                if itemize_depth > 0:
+                    commit_msg(itemize_depth, key)
 
                 if isinstance(cur_std_object, dict):
                     # Labelled list
