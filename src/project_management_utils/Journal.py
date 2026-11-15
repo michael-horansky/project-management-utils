@@ -148,6 +148,7 @@ class Journal():
         self.set_fancy_printing(fancy_printing) # if True, we use colors, highlighting etc
         self.set_max_row_width(max_row_width) # used for clever wrapping
         self.set_yes(yes) # If not None, used instead of asking for input
+        self.set_wrap_stack_messages(wrap_stack_messages) # whether enter/exit messages are wrapped or trimmed
 
         self.last_printed_line = None # Always printed with \r until next line is staged, with different colour
         self.last_printed_line_no_temp = None # Sometimes we trim the line to make space for temporary elements. When that happens, we store the less trimmed version to print when committing the line.
