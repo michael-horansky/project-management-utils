@@ -76,7 +76,7 @@ class Printable_Semaphor(Semaphor):
         process_duration = super().finish_event(S_ID)
         exit_msg_fancy, exit_msg_plain = self.get_exit_msg(S_ID, process_duration)
 
-        self.padding_length -= self.width[S_ID] - 3
+        self.padding_length -= self.width[S_ID] + 3
 
         del self.label[S_ID]
         del self.c[S_ID]
