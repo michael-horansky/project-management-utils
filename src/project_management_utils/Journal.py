@@ -153,6 +153,7 @@ class Journal():
         self.last_printed_line_no_temp = None # Sometimes we trim the line to make space for temporary elements. When that happens, we store the less trimmed version to print when committing the line.
         self.last_printed_depth = 0
         self.last_printed_padding = 0 # The padding required when committing the no temp line. = padding_length at preview - (len(plain no temp last line) - len(plain last line))
+        self.last_printed_temporary_elements = None
 
         self.semaphor = Printable_Semaphor() # The in-house semaphor used to hang on a routine
         self.cur_semaphor_event = None
@@ -278,6 +279,7 @@ class Journal():
             self.last_printed_line_no_temp = None
             self.last_printed_depth = 0
             self.last_printed_padding = 0
+            self.last_printed_temporary_elements = None
 
     def preview_print(self, msg, update_preview = True, temporary_elements = True, msg_no_temp = None, msg_no_temp_diff = 0):
         # If fancy printing is enabled, we always pre-print the last line in bold
@@ -286,11 +288,12 @@ class Journal():
             self.last_printed_line_no_temp = msg_no_temp if msg_no_temp is not None else msg
             self.last_printed_depth = self.depth
             self.last_printed_padding = max(0, (self.get_temporary_elements_width() if temporary_elements else 0) - msg_no_temp_diff)
+            self.last_printed_temporary_elements = temporary_elements
         print(self.pre(enforce_depth = self.last_printed_depth, temporary_elements = temporary_elements) + color.bold(msg), end="\r")
 
     def reload_preview(self):
         if self.print_on_the_fly and self.fancy_printing and self.last_printed_line is not None:
-            self.preview_print(self.last_printed_line, update_preview = False)
+            self.preview_print(self.last_printed_line, update_preview = False, temporary_elements = self.last_printed_temporary_elements)
 
     # ----------------------------- Write method ------------------------------
 
