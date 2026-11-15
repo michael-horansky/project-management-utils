@@ -1109,7 +1109,7 @@ class Journal():
         while ans not in Journal.valid_answers:
             for i in range(len(sequenced_question) - 1):
                 print(self.pre() + sequenced_question[i])
-            ans = input(sequenced_question[-1]).strip().lower()
+            ans = input(self.pre() + sequenced_question[-1]).strip().lower()
 
         """
         question_print = self.pre() + agent_plain_pre + question + " (y / n) "
