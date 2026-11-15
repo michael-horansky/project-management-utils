@@ -376,7 +376,7 @@ class Journal():
                 print(self.pre(allow_fancy = False) + plain_msg)
 
 
-    def write(self, msg, v = -1, w = None, n = 6, min_w = None, prevent_printing_on_the_fly = False, plain_msg = None, agent = None, temporary_elements = True):
+    def write(self, msg, v = -1, w = None, n = 6, min_w = None, prevent_printing_on_the_fly = False, plain_msg = None, agent = None, temporary_elements = True, is_exit = False):
         # Writes a message inside current routine at current depth
         # Arguments:
         #   -msg: Text to be printed. Crudely converted to string if needed.
@@ -413,6 +413,16 @@ class Journal():
         agent_pre, agent_plain_pre = self.get_agent_tag(agent)
         temp_w = self.get_temporary_elements_width()
         w = self.max_allowed_w(w)
+
+        # If this is an exit, we must reserve three characters for the exit pre
+        fancy_exit_pre = ''
+        plain_exit_pre = ''
+        exit_offset = ''
+        if is_exit:
+            w -= 3
+            fancy_exit_pre, plain_exit_pre = self.get_exit_pre()
+            exit_offset = ' ' * len(plain_exit_pre)
+
         if min_w is None:
             # We must be allowed to print an asterism or the agent tag unbroken
             min_w = max(len(Journal.asterism), len(agent_plain_pre))
@@ -420,17 +430,18 @@ class Journal():
         if w < temp_w:
             temporary_elements = False
             temp_w = 0
-        if  w < min_w + temp_w:
+        if w < min_w + temp_w:
             # No wrapping, just a trim
-            self.journal_text += self.pre(allow_fancy = False) + plain_msg[:w] + "\n"
+
+            self.journal_text += self.pre(allow_fancy = False) + plain_exit_pre + plain_msg[:w] + "\n"
             if self.print_on_the_fly and not prevent_printing_on_the_fly:
                 if self.fancy_printing:
                     # We firstly print the last submitted line
                     self.commit_last_line()
-                    self.preview_print(plain_msg[:w - temp_w], temporary_elements = temporary_elements)
+                    self.preview_print(fancy_exit_pre + plain_msg[:w - temp_w], temporary_elements = temporary_elements)
                 else:
                     # crude printing only
-                    print(self.pre(allow_fancy = False) + plain_msg[:w])
+                    print(self.pre(allow_fancy = False) + plain_exit_pre + plain_msg[:w])
             return
 
         # We firstly append the plain agent tag placeholder to msg in order to
@@ -442,7 +453,7 @@ class Journal():
 
         # If we can fit the entire message on one line, we print the fancy one. Otherwise, we wrap and deal with the plain one.
         if len(plain_msg) <= w - temp_w - len(agent_plain_pre):
-            self.write_line(msg, v, prevent_printing_on_the_fly = prevent_printing_on_the_fly, plain_msg = plain_msg, agent = agent, temporary_elements = temporary_elements)
+            self.write_line(msg, v, prevent_printing_on_the_fly = prevent_printing_on_the_fly, plain_msg = plain_msg, agent = agent, temporary_elements = temporary_elements, is_exit = is_exit)
             return
 
         # We need to plaintextify msg
@@ -450,10 +461,7 @@ class Journal():
 
         # Now we write the message line by line to plaintext journal.
         for i in range(len(sequenced_msg)):
-            self.journal_text += self.pre(allow_fancy = False) + sequenced_msg[i] + "\n"
-
-        if not sequenced_msg:
-            return
+            self.journal_text += self.pre(allow_fancy = False) + (plain_exit_pre if i == 0 else exit_offset) + sequenced_msg[i] + "\n"
 
         # We now reserve enough space in the last line for the temporary
         # elements. If there isn't enough space, we add an empty line to the
@@ -471,13 +479,13 @@ class Journal():
                 self.commit_last_line()
 
                 for i in range(len(sequenced_msg) - 1):
-                    print(self.pre(temporary_elements = False) + sequenced_msg[i])
+                    print(self.pre(temporary_elements = False) + (fancy_exit_pre if i == 0 else exit_offset) + sequenced_msg[i])
 
-                self.preview_print(sequenced_msg[-1], temporary_elements = temporary_elements)
+                self.preview_print((fancy_exit_pre if len(sequenced_msg) == 1 else exit_offset) + sequenced_msg[-1], temporary_elements = temporary_elements)
             else:
                 # crude printing only
                 for i in range(len(sequenced_msg)):
-                    print(self.pre(allow_fancy = False) + sequenced_msg[i])
+                    print(self.pre(allow_fancy = False) + (plain_exit_pre if i == 0 else exit_offset) + sequenced_msg[i])
 
     # -------------------- Special object printing methods --------------------
 
@@ -973,13 +981,14 @@ class Journal():
         if semaphored:
             # We register the new event
             new_ID = self.semaphor.create_event(**kwargs)
-            header_fancy = self.semaphor.fg_highlight(new_ID, header)
+            if self.fancy_printing:
+                header_fancy = self.semaphor.fg_highlight(new_ID, header)
 
         self.routine_stack.append([header, max(v, self.get_stack_v()), agent, new_ID])
 
         if self.wrap_stack_messages:
             # Only plaintext can be wrapped.
-            self.write(header, v, agent = agent)
+            self.write(header_fancy, v, agent = agent, plain_msg = header)
         else:
             self.write_line(header_fancy, v, agent = agent, plain_msg = header)
         self.depth += 1
@@ -1035,7 +1044,10 @@ class Journal():
             self.cur_semaphor_event = None
             self.cur_semaphor_prefix_id = 0
         self.depth -= 1
-        self.write_line(exit_msg_fancy, last_routine[1], plain_msg = exit_msg_plain, is_exit = True)
+        if self.wrap_stack_messages:
+            self.write(exit_msg_fancy, last_routine[1], plain_msg = exit_msg_plain, is_exit = True)
+        else:
+            self.write_line(exit_msg_fancy, last_routine[1], plain_msg = exit_msg_plain, is_exit = True)
         self.update_stack_agent()
         if was_it_semaphored:
             return process_duration

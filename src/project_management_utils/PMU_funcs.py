@@ -50,8 +50,8 @@ def wrap_text(text, w, min_w = None, hyphenate = False, n = 6):
         considered = text[:w]
         rest = text[w:]
 
-        # A natural break is already available.
         if considered[-1] == " " or rest[0] == " ":
+            # A natural break is already available.
             line = considered.rstrip()
             text = rest.lstrip()
         else:
