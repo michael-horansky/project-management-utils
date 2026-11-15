@@ -336,6 +336,8 @@ class Journal():
             msg = plain_msg[:max(0, w - temp_w)]
             msg_no_temp_diff = len(plain_msg) - max(0, w - temp_w)
 
+        msg_no_temp = f"{self.get_temporary_elements_width()} x {w} " + msg_no_temp
+
         if record_to_journal:
             self.journal_text += self.pre(allow_fancy = False) + plain_msg + "\n"
         if self.print_on_the_fly and not prevent_printing_on_the_fly:
