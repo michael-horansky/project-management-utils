@@ -33,6 +33,10 @@ def auto_hyphenate(obj):
         return True
     return False
 
+def hyphen_needed(a, b):
+    # Whether a hyphen is suitable between two characters
+    return a.isalpha() and b.isalpha()
+
 def wrap_text(text, w, min_w = None, hyphenate = False, n = 6):
     # Returns a list of strings: the lines of the properly wrapped text.
 
@@ -64,7 +68,7 @@ def wrap_text(text, w, min_w = None, hyphenate = False, n = 6):
                 text = considered[break_at + 1:] + rest
             else:
                 # No suitable space: hyphenate.
-                if hyphenate:
+                if hyphenate and hyphen_needed(considered[-2], considered[-1]):
                     line = considered[:-1] + "-"
                     text = considered[-1] + rest
                 else:
