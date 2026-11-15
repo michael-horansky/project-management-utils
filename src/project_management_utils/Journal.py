@@ -47,16 +47,16 @@ class Journal():
         # useful when testing whether behaviour is as expected
         sample_journal = cls(**kwargs)
 
-        sample_journal.enter("Journal behaviour test commences...")
+        sample_journal.enter("Journal behaviour test commences")
         sample_journal.write("This is a sample instance of class Journal. Please take note of when the announced function does not agree with the output.")
 
-        sample_journal.enter("Testing special object printing methods...")
+        sample_journal.enter("Testing special object printing methods")
         sample_journal.write("Special objects, such as item lists, tables, or matrices, can be printed with special formatting using these methods.")
 
         sample_journal.warning("This is a sample warning.")
         sample_journal.error("This is a sample error.", err = None)
 
-        sample_journal.enter("Testing item list printing...")
+        sample_journal.enter("Testing item list printing")
         sample_journal.print_itemize({
             "print_itemize" : "Prints an itemized/enumerated list from a standard object. Supports nested lists. Max width can be specified.",
             "nested numbered list (list)" : ["First element", "Second element", {"this" : "First part of third element", "that" : "Second part of third element"}, "Fourth element"],
@@ -65,7 +65,7 @@ class Journal():
             }, w = 80)
         sample_journal.exit()
 
-        sample_journal.enter("Testing matrix printing...")
+        sample_journal.enter("Testing matrix printing")
         sample_journal.print_matrix(
             [[0.5 + 1j] * 5, [0.554 + 0.518j] * 5, [0.245] * 5, [0.5 - 0.5j] * 5, [0.5 - 1j] * 5],
             "Example matrix",
@@ -74,7 +74,7 @@ class Journal():
             )
         sample_journal.exit()
 
-        sample_journal.enter("Testing table printing...")
+        sample_journal.enter("Testing table printing")
         sample_journal.print_table(
             table_name = "Current properties",
             column_names = ["value", "default", "description"],
@@ -92,7 +92,7 @@ class Journal():
 
         sample_journal.exit()
 
-        sample_journal.enter("Testing semaphors...")
+        sample_journal.enter("Testing semaphors")
         sample_journal.write("Semaphor is used to update the user periodically when the program spends a long time on one task.")
 
         sample_journal.enter("Calculating gibberish", semaphored = True, label = 'Babble', tau_space = (100, 100))
@@ -113,7 +113,7 @@ class Journal():
 
         sample_journal.exit()
 
-        sample_journal.enter("Testing user input collection...")
+        sample_journal.enter("Testing user input collection")
         sample_journal.write("The journal can ask yes/no questions. This pauses the program. Set the 'yes' property to assume the answers.")
         ans = sample_journal.ask_yes_no("Is this true?")
         if ans:

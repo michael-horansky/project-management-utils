@@ -37,6 +37,10 @@ def hyphen_needed(a, b):
     # Whether a hyphen is suitable between two characters
     return a.isalpha() and b.isalpha()
 
+# Breaking strings on certain characters is more natural. The char is placed
+# before the linebreak and repeated at the start of next line.
+break_chars = ['/', '\\', '-', '+', '.']
+
 def wrap_text(text, w, min_w = None, hyphenate = False, n = 6):
     # Returns a list of strings: the lines of the properly wrapped text.
 
@@ -59,7 +63,7 @@ def wrap_text(text, w, min_w = None, hyphenate = False, n = 6):
             line = considered.rstrip()
             text = rest.lstrip()
         else:
-            # Look for a space among the last n characters.
+            # Look for a space or a break char among the last n characters.
             search_start = w - n
             break_at = considered.rfind(" ", search_start)
 
@@ -67,13 +71,19 @@ def wrap_text(text, w, min_w = None, hyphenate = False, n = 6):
                 line = considered[:break_at]
                 text = considered[break_at + 1:] + rest
             else:
-                # No suitable space: hyphenate.
-                if hyphenate and hyphen_needed(considered[-2], considered[-1]):
-                    line = considered[:-1] + "-"
-                    text = considered[-1] + rest
+                # We look for break chars
+                break_at = max(considered.rfind(c, search_start) for c in break_chars)
+                if break_at != -1:
+                    line = considered[:break_at + 1]
+                    text = considered[break_at:] + rest
                 else:
-                    line = considered
-                    text = rest
+                    # No suitable space: break and possibly hyphenate.
+                    if hyphenate and hyphen_needed(considered[-2], considered[-1]):
+                        line = considered[:-1] + "-"
+                        text = considered[-1] + rest
+                    else:
+                        line = considered
+                        text = rest
 
         res.append(line)
 
