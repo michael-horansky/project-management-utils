@@ -959,7 +959,7 @@ class Journal():
 
         self.routine_stack.append([header, max(v, self.get_stack_v()), agent, new_ID])
 
-        self.write(header_fancy, v, agent = agent, plain_msg = header)
+        self.write(header_fancy, v, agent = agent)
         self.depth += 1
 
         self.update_stack_agent()
