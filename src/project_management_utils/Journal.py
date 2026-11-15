@@ -325,13 +325,11 @@ class Journal():
         if len(plain_msg) > w:
             # We print the plain message aggressively trimmed.
             msg = plain_msg[:max(0, w - temp_w)]
-            if temp_w > 0:
-                msg_no_temp = plain_msg[:w]
-                msg_no_temp_diff = w - max(0, w - temp_w)
+            msg_no_temp = plain_msg[:w]
+            msg_no_temp_diff = w - max(0, w - temp_w)
             plain_msg = plain_msg[:w]
         elif len(plain_msg) > max(0, w - temp_w):
             # The no temp message is untrimmed, but the preview message is trimmed
-            msg_no_temp = msg # We can keep the formatting here
             msg = plain_msg[:max(0, w - temp_w)]
             msg_no_temp_diff = len(plain_msg) - max(0, w - temp_w)
 
