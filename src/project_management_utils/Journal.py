@@ -23,10 +23,10 @@ class Journal():
     asterism = " * * * "
 
     gradual_fg_color = [ # used for pipes. Highlights routine depth. Cycles.
-            color.BRIGHT_BLUE,
-            color.BRIGHT_MAGENTA,
-            color.CYAN,
-            color.BRIGHT_CYAN
+            ('blue', True),
+            ('magenta', True),
+            ('cyan', False),
+            ('cyan', True)
         ]
 
     # --------------------------- Class properties ----------------------------
@@ -130,7 +130,7 @@ class Journal():
 
     # -------------------- Constructor, descriptor, output --------------------
 
-    def __init__(self, verbosity = 5, print_on_the_fly = True, fancy_printing = True, max_row_width = 200, yes = None):
+    def __init__(self, verbosity = 5, print_on_the_fly = True, fancy_printing = True, max_row_width = 200, yes = None, wrap_stack_messages = False):
 
         # Verbosity key:
         #   0/None: Important, always prints (user methods)
@@ -189,6 +189,11 @@ class Journal():
             raise ValueError("'yes' must be set to a boolean value or to None.")
         self.yes = yes
 
+    def set_wrap_stack_messages(self, wrap_stack_messages):
+        if not isinstance(wrap_stack_messages, bool):
+            raise ValueError("'wrap_stack_messages' must be set to a boolean value or to None.")
+        self.wrap_stack_messages = wrap_stack_messages
+
     def close_journal(self):
 
         w = self.max_allowed_w(80)
@@ -237,11 +242,14 @@ class Journal():
 
     # --------------------------- Prefix management ---------------------------
 
+    def gradual_highlight(self, i, msg):
+        return color.fg_highlight(Journal.gradual_fg_color[i % len(Journal.gradual_fg_color)][0], msg, Journal.gradual_fg_color[i % len(Journal.gradual_fg_color)][1])
+
     def pipe_stack(self, n, allow_fancy = True):
         if self.fancy_printing and allow_fancy:
             res = ""
             for i in range(n):
-                res += Journal.gradual_fg_color[i % len(Journal.gradual_fg_color)] + Journal.pipe + color.END
+                res += self.gradual_highlight(i, Journal.pipe)
             return(res)
         else:
             return(Journal.pipe * n)
@@ -261,7 +269,7 @@ class Journal():
     def get_exit_pre(self):
         plain_exit_pre = "\\_ "
         if self.fancy_printing:
-            fancy_exit_pre = Journal.gradual_fg_color[self.depth % len(Journal.gradual_fg_color)] + "\\_" + color.END + " "
+            fancy_exit_pre = self.gradual_highlight(self.depth, "\\_") + " "
         else:
             fancy_exit_pre = plain_exit_pre
         return (fancy_exit_pre, plain_exit_pre)
@@ -959,7 +967,11 @@ class Journal():
 
         self.routine_stack.append([header, max(v, self.get_stack_v()), agent, new_ID])
 
-        self.write(header_fancy, v, agent = agent)
+        if self.wrap_stack_messages:
+            # Only plaintext can be wrapped.
+            self.write(header, v, agent = agent)
+        else:
+            self.write_line(header_fancy, v, agent = agent, plain_msg = header)
         self.depth += 1
 
         self.update_stack_agent()
