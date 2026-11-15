@@ -258,6 +258,14 @@ class Journal():
             res += self.get_temporary_elements()
         return res
 
+    def get_exit_pre(self):
+        plain_exit_pre = "\\_ "
+        if self.fancy_printing:
+            fancy_exit_pre = Journal.gradual_fg_color[self.depth % len(Journal.gradual_fg_color)] + "\\_" + color.END + " "
+        else:
+            fancy_exit_pre = plain_exit_pre
+        return (fancy_exit_pre, plain_exit_pre)
+
     def get_stack_v(self):
         # If stack is non-empty, we return last max req verbosity from stack; -1 otherwise (no requirement)
         if len(self.routine_stack) > 0:
@@ -297,7 +305,7 @@ class Journal():
 
     # ----------------------------- Write method ------------------------------
 
-    def write_line(self, msg, v = -1, prevent_printing_on_the_fly = False, record_to_journal = True, plain_msg = None, agent = None, temporary_elements = True):
+    def write_line(self, msg, v = -1, prevent_printing_on_the_fly = False, record_to_journal = True, plain_msg = None, agent = None, temporary_elements = True, is_exit = False):
         # Internal method to display message for which both fancy text and
         # plaintext are known.
         # This method simply prints one line.
@@ -307,6 +315,10 @@ class Journal():
 
         w = self.max_allowed_w()
         temp_w = 0
+
+        # If this is an exit, we must reserve three characters for the exit pre
+        if is_exit:
+            w -= 3
 
         # If we can't fit the temporary elements, we disable them
         if self.get_temporary_elements_width() > w:
@@ -336,7 +348,12 @@ class Journal():
             msg = plain_msg[:max(0, w - temp_w)]
             msg_no_temp_diff = len(plain_msg) - max(0, w - temp_w)
 
-        msg_no_temp = f"{self.get_temporary_elements_width()} x {w} " + msg_no_temp
+        if is_exit:
+            # We now attach the exit pre
+            fancy_exit_pre, plain_exit_pre = self.get_exit_pre()
+            msg = fancy_exit_pre + msg
+            msg_no_temp = fancy_exit_pre + msg_no_temp
+            plain_msg = plain_exit_pre + plain_msg
 
         if record_to_journal:
             self.journal_text += self.pre(allow_fancy = False) + plain_msg + "\n"
@@ -983,7 +1000,7 @@ class Journal():
 
 
         if end_message is not None:
-            exit_msg_plain = " " + end_message
+            exit_msg_plain = end_message
         else:
             exit_msg_plain = ""
         exit_msg_fancy = exit_msg_plain
@@ -991,14 +1008,12 @@ class Journal():
         # check if it's semaphored
         was_it_semaphored = last_routine[3] is not None
         if was_it_semaphored:
-            # We exit the semaphored routine
-            process_duration, semaphor_exit_msg_fancy, semaphor_exit_msg_plain = self.semaphor.finish_event(last_routine[3])
+            # We exit the semaphored routine, This overrides the exit msg.
+            process_duration, exit_msg_fancy, exit_msg_plain = self.semaphor.finish_event(last_routine[3])
             self.cur_semaphor_event = None
             self.cur_semaphor_prefix_id = 0
-            exit_msg_fancy = " " + semaphor_exit_msg_fancy
-            exit_msg_plain = " " + semaphor_exit_msg_plain
         self.depth -= 1
-        self.write_line(Journal.gradual_fg_color[self.depth % len(Journal.gradual_fg_color)] + "\\_" + color.END + exit_msg_fancy, last_routine[1], plain_msg = "\\_" + exit_msg_plain)
+        self.write_line( exit_msg_fancy, last_routine[1], plain_msg = "\\_" + exit_msg_plain)
         self.update_stack_agent()
         if was_it_semaphored:
             return process_duration
