@@ -1013,7 +1013,7 @@ class Journal():
             self.cur_semaphor_event = None
             self.cur_semaphor_prefix_id = 0
         self.depth -= 1
-        self.write_line( exit_msg_fancy, last_routine[1], plain_msg = "\\_" + exit_msg_plain)
+        self.write_line(exit_msg_fancy, last_routine[1], plain_msg = exit_msg_plain, is_exit = True)
         self.update_stack_agent()
         if was_it_semaphored:
             return process_duration
