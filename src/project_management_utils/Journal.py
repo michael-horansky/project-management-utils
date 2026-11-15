@@ -1080,12 +1080,12 @@ class Journal():
         agent_pre, agent_plain_pre = self.get_agent_tag(agent)
         plain_question = agent_pre + question # + " (y / n)"
 
-        if len(plain_question) > w - ans_w - len(plain_instruction):
+        if len(plain_question) > w - ans_w - len(plain_instruction) - 1:
             # We need to wrap
             sequenced_question = PMU_funcs.wrap_text(plain_question, w, ans_w + len(plain_instruction), hyphenate = True)
 
             newline_for_instruction = False
-            if len(sequenced_question[-1]) > w - ans_w - len(plain_instruction):
+            if len(sequenced_question[-1]) > w - ans_w - len(plain_instruction) - 1:
                 newline_for_instruction = True
 
             if self.fancy_printing:
@@ -1100,11 +1100,11 @@ class Journal():
             if newline_for_instruction:
                 sequenced_question.append(instruction)
             else:
-                sequenced_question[-1] += instruction
+                sequenced_question[-1] += ' ' + instruction
         else:
             # We can fit it all on one line
             if self.fancy_printing:
-                sequenced_question = [agent_pre + color.bold(question) + instruction]
+                sequenced_question = [agent_pre + color.bold(question) + ' ' + instruction]
 
         while ans not in Journal.valid_answers:
             for i in range(len(sequenced_question) - 1):
