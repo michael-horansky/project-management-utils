@@ -150,7 +150,9 @@ class Journal():
         self.set_yes(yes) # If not None, used instead of asking for input
 
         self.last_printed_line = None # Always printed with \r until next line is staged, with different colour
+        self.last_printed_line_no_temp = None # Sometimes we trim the line to make space for temporary elements. When that happens, we store the less trimmed version to print when committing the line.
         self.last_printed_depth = 0
+        self.last_printed_padding = 0 # The padding required when committing the no temp line. = padding_length at preview - (len(plain no temp last line) - len(plain last line))
 
         self.semaphor = Printable_Semaphor() # The in-house semaphor used to hang on a routine
         self.cur_semaphor_event = None
@@ -269,25 +271,30 @@ class Journal():
 
     # ------------------------ Fancy printing methods -------------------------
 
-    def commit_last_line(self, padding_length = 0):
-        if self.last_printed_line is not None:
-            print(self.pipe_stack(self.last_printed_depth) + self.last_printed_line + ' ' * padding_length)
+    def commit_last_line(self):
+        if self.last_printed_line_no_temp is not None:
+            print(self.pipe_stack(self.last_printed_depth) + self.last_printed_line_no_temp + ' ' * self.last_printed_padding)
             self.last_printed_line = None
+            self.last_printed_line_no_temp = None
+            self.last_printed_depth = 0
+            self.last_printed_padding = 0
 
-    def preview_print(self, msg, update_last_printed_depth = True, temporary_elements = True):
+    def preview_print(self, msg, update_preview = True, temporary_elements = True, msg_no_temp = None, msg_no_temp_diff = 0):
         # If fancy printing is enabled, we always pre-print the last line in bold
-        if update_last_printed_depth:
+        if update_preview:
+            self.last_printed_line = msg
+            self.last_printed_line_no_temp = msg_no_temp if msg_no_temp is not None else msg
             self.last_printed_depth = self.depth
-        self.last_printed_line = msg
+            self.last_printed_padding = max(0, (self.get_temporary_elements_width() if temporary_elements else 0) - msg_no_temp_diff)
         print(self.pre(enforce_depth = self.last_printed_depth, temporary_elements = temporary_elements) + color.bold(msg), end="\r")
 
     def reload_preview(self):
         if self.print_on_the_fly and self.fancy_printing and self.last_printed_line is not None:
-            self.preview_print(self.last_printed_line, update_last_printed_depth = False)
+            self.preview_print(self.last_printed_line, update_preview = False)
 
     # ----------------------------- Write method ------------------------------
 
-    def write_line(self, msg, v = -1, prevent_printing_on_the_fly = False, record_to_journal = True, plain_msg = None, agent = None, temporary_elements = True, padding_length = None):
+    def write_line(self, msg, v = -1, prevent_printing_on_the_fly = False, record_to_journal = True, plain_msg = None, agent = None, temporary_elements = True):
         # Internal method to display message for which both fancy text and
         # plaintext are known.
         # This method simply prints one line.
@@ -295,8 +302,15 @@ class Journal():
         if self.verbosity < max(v, self.get_stack_v()):
             return
 
-        if padding_length is None:
-            padding_length = self.get_temporary_elements_width()
+        w = self.max_allowed_w()
+        temp_w = 0
+
+        # If we can't fit the temporary elements, we disable them
+        if self.get_temporary_elements_width() > w:
+            temporary_elements = False
+        else:
+            # We print temporary elements, which means we need to make space for them
+            temp_w = self.get_temporary_elements_width()
 
         if plain_msg is None:
             plain_msg = msg
@@ -304,28 +318,36 @@ class Journal():
         agent_pre, agent_plain_pre = self.get_agent_tag(agent)
         msg = agent_pre + msg
         plain_msg = agent_plain_pre + plain_msg
+        msg_no_temp = msg
+        msg_no_temp_diff = 0
 
-        if len(plain_msg) > self.max_allowed_w():
+        # Trimming to respect max row width
+        if len(plain_msg) > w:
             # We print the plain message aggressively trimmed.
-            if temporary_elements:
-                msg = plain_msg[:max(0, self.max_allowed_w() - padding_length)]
-            else:
-                msg = plain_msg[:max(0, self.max_allowed_w())]
-            plain_msg = plain_msg[:max(0, self.max_allowed_w())]
+            msg = plain_msg[:max(0, w - temp_w)]
+            if temp_w > 0:
+                msg_no_temp = plain_msg[:w]
+                msg_no_temp_diff = w - max(0, w - temp_w)
+            plain_msg = plain_msg[:w]
+        elif len(plain_msg) > max(0, w - temp_w):
+            # The no temp message is untrimmed, but the preview message is trimmed
+            msg_no_temp = msg # We can keep the formatting here
+            msg = plain_msg[:max(0, w - temp_w)]
+            msg_no_temp_diff = len(plain_msg) - max(0, w - temp_w)
 
         if record_to_journal:
             self.journal_text += self.pre(allow_fancy = False) + plain_msg + "\n"
         if self.print_on_the_fly and not prevent_printing_on_the_fly:
             if self.fancy_printing:
                 # We firstly print the last submitted line, and then the preprint of the current line
-                self.commit_last_line(padding_length)
-                self.preview_print(msg, temporary_elements = temporary_elements)
+                self.commit_last_line()
+                self.preview_print(msg, temporary_elements = temporary_elements, msg_no_temp = msg_no_temp, msg_no_temp_diff = msg_no_temp_diff)
             else:
                 # crude printing only
                 print(self.pre(allow_fancy = False) + plain_msg)
 
 
-    def write(self, msg, v = -1, w = None, n = 6, min_w = None, prevent_printing_on_the_fly = False, agent = None, temporary_elements = True, padding_length = None):
+    def write(self, msg, v = -1, w = None, n = 6, min_w = None, prevent_printing_on_the_fly = False, agent = None, temporary_elements = True):
         # Writes a message inside current routine at current depth
         # Arguments:
         #   -msg: Text to be printed. Crudely converted to string if needed.
@@ -358,19 +380,27 @@ class Journal():
 
         # Normalise arguments
         agent_pre, agent_plain_pre = self.get_agent_tag(agent)
-        if padding_length is None:
-            padding_length = self.get_temporary_elements_width()
+        temp_w = self.get_temporary_elements_width()
         w = self.max_allowed_w(w)
         if min_w is None:
             # We must be allowed to print an asterism or the agent tag unbroken
             min_w = max(len(Journal.asterism), len(agent_plain_pre))
         # We must reserve space for all temporary elements
-        if temporary_elements:
-            min_w += padding_length
-
-        if w < min_w:
+        if w < temp_w:
+            temporary_elements = False
+            temp_w = 0
+        if  w < min_w + temp_w:
+            # No wrapping, just a trim
+            self.journal_text += self.pre(allow_fancy = False) + msg[:w] + "\n"
+            if self.print_on_the_fly and not prevent_printing_on_the_fly:
+                if self.fancy_printing:
+                    # We firstly print the last submitted line
+                    self.commit_last_line()
+                    self.preview_print(msg[:w - temp_w], temporary_elements = temporary_elements)
+                else:
+                    # crude printing only
+                    print(self.pre(allow_fancy = False) + msg[:w])
             return
-
 
         # We firstly append the plain agent tag placeholder to msg in order to
         # properly wrap it.
@@ -390,7 +420,7 @@ class Journal():
         # We now reserve enough space in the last line for the temporary
         # elements. If there isn't enough space, we add an empty line to the
         # end, which will simply display the temporary elements.
-        if len(sequenced_msg[-1]) > w - padding_length:
+        if len(sequenced_msg[-1]) > w - temp_w:
             sequenced_msg.append("")
 
         # We now make the agent pre fancy
@@ -400,7 +430,7 @@ class Journal():
         if self.print_on_the_fly and not prevent_printing_on_the_fly:
             if self.fancy_printing:
                 # We firstly print the last submitted line
-                self.commit_last_line(padding_length)
+                self.commit_last_line()
 
                 for i in range(len(sequenced_msg) - 1):
                     print(self.pre(temporary_elements = False) + sequenced_msg[i])
@@ -955,8 +985,6 @@ class Journal():
             exit_msg_plain = ""
         exit_msg_fancy = exit_msg_plain
 
-        padding_length = self.semaphor.padding_length
-
         # check if it's semaphored
         was_it_semaphored = last_routine[3] is not None
         if was_it_semaphored:
@@ -967,7 +995,7 @@ class Journal():
             exit_msg_fancy = " " + semaphor_exit_msg_fancy
             exit_msg_plain = " " + semaphor_exit_msg_plain
         self.depth -= 1
-        self.write_line(Journal.gradual_fg_color[self.depth % len(Journal.gradual_fg_color)] + "\\_" + color.END + exit_msg_fancy, last_routine[1], plain_msg = "\\_" + exit_msg_plain, padding_length = padding_length)
+        self.write_line(Journal.gradual_fg_color[self.depth % len(Journal.gradual_fg_color)] + "\\_" + color.END + exit_msg_fancy, last_routine[1], plain_msg = "\\_" + exit_msg_plain)
         self.update_stack_agent()
         if was_it_semaphored:
             return process_duration
