@@ -37,6 +37,8 @@ def wrap_text(text, w, min_w = None, hyphenate = False, n = 6):
     # Returns a list of strings: the lines of the properly wrapped text.
 
     res = []
+    if text == "":
+        return [""]
     if min_w is not None and w < min_w:
         # Cannot print anything
         return []

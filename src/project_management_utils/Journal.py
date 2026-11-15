@@ -335,7 +335,9 @@ class Journal():
         #   -padding_length: How much padding is printed on the right side of
         #                    the message (to erase temporary elements).
 
-        # Only input padding_length manually when the length needs to be reserved before altering the semaphor status (like on finishing semaphor events)
+        # Only input padding_length manually when the length needs to be
+        # reserved before altering the semaphor status (like on finishing
+        # semaphor events).
 
         msg = str(msg)
 
@@ -365,8 +367,7 @@ class Journal():
         # properly wrap it.
         # Non-empty agent tags always end with a trailing space, which
         # ensures we can linebreak on that space if necessary.
-        if agent_plain_pre:
-            msg = agent_plain_pre + msg
+        msg = agent_plain_pre + msg
 
         sequenced_msg = PMU_funcs.wrap_text(msg, w, min_w, hyphenate = True, n = n)
 
@@ -434,37 +435,93 @@ class Journal():
         if err is not None:
             raise err(str(msg))
 
-    def print_itemize(self, std_object, v = -1, agent = None):
+    def print_itemize(self, std_object, w = None, n = 6, min_w = None, v = -1, agent = None):
         # std_object is an object with the following properties:
-        #   1. It is either a dict or a list
-        #   2. Every element is either a valid std_object or a string
+        #   1. It is either a string, tuple, list, or dictionary
+        #   2. Every nested element is a valid std_object
+        # The strings act as leaves. The three iterables act as the following:
+        #   1. Tuples represent itemized lists
+        #   2. Lists represent numbered lists
+        #   3. Dictionaries represent labelled lists.
 
         # If agent needs to be printed, we print it on the top
         agent_pre, agent_plain_pre = self.get_agent_tag(agent)
         if agent_plain_pre:
             self.write_line("", v = v, agent = agent, temporary_elements = False)
 
-        def peel_layer(cur_std_object, key = None, itemize_depth = 0):
-            if isinstance(cur_std_object, dict):
-                if key is not None:
-                    plain_msg = " " * (2 * itemize_depth) + "-" + str(key)
-                    self.write_line(" " * (2 * itemize_depth) + color.BRIGHT_YELLOW + "-" + color.END + str(key), v = v, plain_msg = plain_msg, agent = None, temporary_elements = False)
-                for label, value in cur_std_object.items():
-                    peel_layer(value, label, itemize_depth + 1)
-            elif isinstance(cur_std_object, list):
-                if key is not None:
-                    plain_msg = " " * (2 * itemize_depth) + "-" + str(key)
-                    self.write_line(" " * (2 * itemize_depth) + color.BRIGHT_YELLOW + "-" + color.END + str(key), v = v, plain_msg = plain_msg, agent = None, temporary_elements = False)
-                for i in range(len(cur_std_object)):
-                    peel_layer(cur_std_object[i], str(i + 1), itemize_depth + 1)
+        w = self.max_allowed_w(w)
+        if min_w is None:
+            min_w = len(Journal.asterism)
+
+        # We store all the lines in a list and then print it in a batch.
+        fancy_print_queue = []
+        plain_print_queue = []
+
+        def commit_msg(itemize_depth, key, msg = None):
+            nonlocal fancy_print_queue
+            nonlocal plain_print_queue
+            # We assume key is None for itemize, str for labelled, int for numbered
+            if key is None:
+                # Itemized
+                plain_keystr = '-'
+                prefix_len = (2 * itemize_depth) + 1
+                fancy_keystr = color.fg_highlight('yellow', '-', True)
+            elif isinstance(key, int):
+                # Numbered
+                plain_keystr = str(key) + '. '
+                prefix_len = (2 * itemize_depth) + len(plain_keystr)
+                fancy_keystr = color.fg_highlight('yellow', str(key) + '.', True) + ' '
+            elif isinstance(key, str):
+                # Labelled
+                plain_keystr = key + ': '
+                prefix_len = (2 * itemize_depth) + len(plain_keystr)
+                fancy_keystr = color.fg_highlight('yellow', key + ':', True) + ' '
+            if w < (2 * itemize_depth) + len(plain_keystr.rstrip()):
+                # We skip the printing with an ellipsis
+                fancy_print_queue.append(PMU_funcs.st('...', w))
+                plain_print_queue.append(PMU_funcs.st('...', w))
+                return
+            if msg is None:
+                fancy_print_queue.append(' ' * (2 * itemize_depth) + fancy_keystr.rstrip())
+                plain_print_queue.append(' ' * (2 * itemize_depth) + plain_keystr.rstrip())
+                return
             else:
-                plain_msg = " " * (2 * itemize_depth) + f"-{key}: {cur_std_object}"
-                self.write_line(" " * (2 * itemize_depth) + color.BRIGHT_YELLOW + "-" + color.END + f"{key}: {cur_std_object}", v = v, plain_msg = plain_msg, agent = None, temporary_elements = False)
+                if w < prefix_len + min(min_w, len(msg)):
+                    fancy_print_queue.append(PMU_funcs.st('...', w))
+                    plain_print_queue.append(PMU_funcs.st('...', w))
+                    return
+                else:
+                    sequenced_msg = PMU_funcs.wrap_text(msg, w - prefix_len, hyphenate = True, n = n)
+                    fancy_print_queue.append(' ' * (2 * itemize_depth) + fancy_keystr + sequenced_msg[0])
+                    plain_print_queue.append(' ' * (2 * itemize_depth) + plain_keystr + sequenced_msg[0])
+                    for i in range(1, len(sequenced_msg)):
+                        fancy_print_queue.append(' ' * prefix_len + sequenced_msg[i])
+                        plain_print_queue.append(' ' * prefix_len + sequenced_msg[i])
+
+
+        def peel_layer(cur_std_object, key = None, itemize_depth = 0):
+            if isinstance(cur_std_object, str):
+                # leaf
+                commit_msg(itemize_depth, key, cur_std_object)
+            else:
+                # We print the key on its own
+                commit_msg(itemize_depth, key)
+
+                if isinstance(cur_std_object, dict):
+                    # Labelled list
+                    for label, value in cur_std_object.items():
+                        peel_layer(value, str(label), itemize_depth + 1)
+                elif isinstance(cur_std_object, tuple):
+                    # Itemized list
+                    for i in range(len(cur_std_object)):
+                        peel_layer(cur_std_object[i], None, itemize_depth + 1)
+                elif isinstance(cur_std_object, list):
+                    # Numbered list
+                    for i in range(len(cur_std_object)):
+                        peel_layer(cur_std_object[i], i + 1, itemize_depth + 1)
 
         peel_layer(std_object)
-        # If temporary elements need to be printed, we print them here
-        if self.get_temporary_elements_width() > 0:
-            self.write_line("", v = v, record_to_journal = False, agent = None)
+        self.print_precomputed_batch(fancy_print_queue, plain_print_queue, v = v, agent = agent)
 
     def print_matrix(self, m, label, dec_points = 5, max_rows = 11, v = -1, agent = None):
 
