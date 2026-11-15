@@ -117,9 +117,13 @@ def standard_align(obj, align):
 
 
 def st(a, w, c = ' ', align = "c", plain_len = None):
+    if more_than_with_none(plain_len, w):
+        # Cannot trim safely
+        return st("...", w, c, align)
+
     if plain_len is None:
         plain_len = len(str(a))
-    if plain_len >= w:
+    if plain_len > w:
         return str(a)[:w] # we trim
     else:
         diff = w - plain_len

@@ -376,11 +376,10 @@ class Journal():
                 print(self.pre(allow_fancy = False) + plain_msg)
 
 
-    def write(self, msg, v = -1, w = None, n = 6, min_w = None, prevent_printing_on_the_fly = False, agent = None, temporary_elements = True):
+    def write(self, msg, v = -1, w = None, n = 6, min_w = None, prevent_printing_on_the_fly = False, plain_msg = None, agent = None, temporary_elements = True):
         # Writes a message inside current routine at current depth
         # Arguments:
         #   -msg: Text to be printed. Crudely converted to string if needed.
-        #         Must be plaintext (no ANSI escape codes).
         #   -v: verbosity. Only prints if lower than system verbosity.
         #   -w: Maximum width of the output, in characters.
         #   -n: How many characters can be pushed from end of one line to the
@@ -389,11 +388,11 @@ class Journal():
         #           w drops below min_w, no printing occurs.
         #   -prevent_printing_on_the_fly: Recorded to the Journal text, but not
         #                                 displayed in the output.
+        #   -plain_msg: Must be provided if msg contains ANSI characters.
+        #               In case of wrapping or trimming, plain_msg is used.
         #   -agent: Agent ID of write author. Agent tag is added conditionally.
         #   -temporary_elements: Whether to include them. Set to False only for
         #                        multi-line batches of pre-computed text.
-        #   -padding_length: How much padding is printed on the right side of
-        #                    the message (to erase temporary elements).
 
         # Only input padding_length manually when the length needs to be
         # reserved before altering the semaphor status (like on finishing
@@ -401,8 +400,11 @@ class Journal():
 
         msg = str(msg)
 
-        if "\x1b" in msg:
-            self.error("Input to the write method must not contain ANSI escape characters.")
+        if "\x1b" in msg and plain_msg is None:
+            self.error("Plain to the write method must not contain ANSI escape characters.")
+        if plain_msg is None:
+            # msg is plaintext
+            plain_msg = msg
 
         if self.verbosity < max(v, self.get_stack_v()):
             return
@@ -420,24 +422,31 @@ class Journal():
             temp_w = 0
         if  w < min_w + temp_w:
             # No wrapping, just a trim
-            self.journal_text += self.pre(allow_fancy = False) + msg[:w] + "\n"
+            self.journal_text += self.pre(allow_fancy = False) + plain_msg[:w] + "\n"
             if self.print_on_the_fly and not prevent_printing_on_the_fly:
                 if self.fancy_printing:
                     # We firstly print the last submitted line
                     self.commit_last_line()
-                    self.preview_print(msg[:w - temp_w], temporary_elements = temporary_elements)
+                    self.preview_print(plain_msg[:w - temp_w], temporary_elements = temporary_elements)
                 else:
                     # crude printing only
-                    print(self.pre(allow_fancy = False) + msg[:w])
+                    print(self.pre(allow_fancy = False) + plain_msg[:w])
             return
 
         # We firstly append the plain agent tag placeholder to msg in order to
         # properly wrap it.
         # Non-empty agent tags always end with a trailing space, which
         # ensures we can linebreak on that space if necessary.
-        msg = agent_plain_pre + msg
+        #msg = agent_plain_pre + msg
+        #plain_msg = agent_plain_pre + plain_msg
 
-        sequenced_msg = PMU_funcs.wrap_text(msg, w, min_w, hyphenate = True, n = n)
+        # If we can fit the entire message on one line, we print the fancy one. Otherwise, we wrap and deal with the plain one.
+        if len(plain_msg) <= w - temp_w - len(agent_plain_pre):
+            self.write_line(msg, v, prevent_printing_on_the_fly = prevent_printing_on_the_fly, plain_msg = plain_msg, agent = agent, temporary_elements = temporary_elements)
+            return
+
+        # We need to plaintextify msg
+        sequenced_msg = PMU_funcs.wrap_text(agent_plain_pre + plain_msg, w, min_w, hyphenate = True, n = n)
 
         # Now we write the message line by line to plaintext journal.
         for i in range(len(sequenced_msg)):
@@ -452,8 +461,8 @@ class Journal():
         if len(sequenced_msg[-1]) > w - temp_w:
             sequenced_msg.append("")
 
-        # We now make the agent pre fancy
-        if self.fancy_printing:
+        # We now make the agent pre fancy (if it fits)
+        if self.fancy_printing and w >= len(agent_plain_pre):
             sequenced_msg[0] = agent_pre + sequenced_msg[0][len(agent_plain_pre):]
 
         if self.print_on_the_fly and not prevent_printing_on_the_fly:
@@ -1038,16 +1047,19 @@ class Journal():
         # Doesn't proceed until given answer
         # Returns True if yes, False if no
 
+        ans_w = 3
+        # ans_w is the minimal reserved length for the answer
+
         if self.yes is not None:
             if self.yes:
-                self.write_line(question + " (Automatically decided '" + color.fg_highlight('green', 'yes', False) + "')", plain_msg = question + " (Automatically decided 'yes')", agent = agent)
+                self.write(question + " (Automatically decided '" + color.fg_highlight('green', 'yes', False) + "')", plain_msg = question + " (Automatically decided 'yes')", agent = agent)
             else:
-                self.write_line(question + " (Automatically decided '" + color.fg_highlight('red', 'no', False) + "')", plain_msg = question + " (Automatically decided 'no')", agent = agent)
+                self.write(question + " (Automatically decided '" + color.fg_highlight('red', 'no', False) + "')", plain_msg = question + " (Automatically decided 'no')", agent = agent)
             return(self.yes)
 
         if not self.print_on_the_fly:
             # Assume yes
-            self.write_line(question + " (Assumed '" + color.fg_highlight('green', 'yes', False) + "')", plain_msg = question + " (Assumed 'yes')", agent = agent)
+            self.write(question + " (Assumed '" + color.fg_highlight('green', 'yes', False) + "')", plain_msg = question + " (Assumed 'yes')", agent = agent)
             return(True)
 
         # First, we commit the previous line
@@ -1055,14 +1067,57 @@ class Journal():
 
         ans = "NOT_PROVIDED"
 
-        agent_pre, agent_plain_pre = self.get_agent_tag(agent)
+        plain_instruction = "( y / n ) "
+        if self.fancy_printing:
+            instruction = "(" + color.fg_highlight('green', 'y', False) + " / " + color.fg_highlight('red', 'n', False) + ") "
+        else:
+            instruction = plain_instruction
 
+        # We prepare the potentially wrapped question string.
+        # If (y / n) is unbroken and belongs on the new line.
+        w = self.max_allowed_w()
+
+        agent_pre, agent_plain_pre = self.get_agent_tag(agent)
+        plain_question = agent_pre + question # + " (y / n)"
+
+        if len(plain_question) > w - ans_w - len(plain_instruction):
+            # We need to wrap
+            sequenced_question = PMU_funcs.wrap_text(plain_question, w, ans_w + len(plain_instruction), hyphenate = True)
+
+            newline_for_instruction = False
+            if len(sequenced_question[-1]) > w - ans_w - len(plain_instruction):
+                newline_for_instruction = True
+
+            if self.fancy_printing:
+                if w >= len(agent_plain_pre):
+                    sequenced_question[0] = agent_pre + color.bold(sequenced_question[0][len(agent_plain_pre):])
+                else:
+                    sequenced_question[0] = color.bold(sequenced_question[0])
+
+                for i in range(1, len(sequenced_question)):
+                    sequenced_question[i] = color.bold(sequenced_question[i])
+
+            if newline_for_instruction:
+                sequenced_question.append(instruction)
+            else:
+                sequenced_question[-1] += instruction
+        else:
+            # We can fit it all on one line
+            if self.fancy_printing:
+                sequenced_question = [agent_pre + color.bold(question) + instruction]
+
+        while ans not in Journal.valid_answers:
+            for i in range(len(sequenced_question) - 1):
+                print(self.pre() + sequenced_question[i])
+            ans = input(sequenced_question[-1]).strip().lower()
+
+        """
         question_print = self.pre() + agent_plain_pre + question + " (y / n) "
         if self.fancy_printing:
             question_print = self.pre() + agent_pre + color.bold(question) + " (" + color.fg_highlight('green', 'y', False) + " / " + color.fg_highlight('red', 'n', False) + ") "
 
         while ans not in Journal.valid_answers:
-            ans = input(question_print).strip().lower()
+            ans = input(question_print).strip().lower()"""
 
         if ans in Journal.answer_strings["yes"]:
             self.write_line(question + " (Answered 'yes')", prevent_printing_on_the_fly = True)
