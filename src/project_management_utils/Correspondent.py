@@ -69,9 +69,9 @@ class Correspondent:
         if journal is not None:
             journal.error(msg, v, agent = self.agent_ID, err = err)
 
-    def print_itemize(self, std_object, v = -1):
+    def print_itemize(self, std_object, w = None, n = 6, min_w = None, v = -1):
         if journal is not None:
-            journal.print_itemize(std_object, agent = self.agent_ID)
+            journal.print_itemize(std_object, w = w, n = n, min_w = min_w, agent = self.agent_ID)
 
     def print_matrix(self, m, label, dec_points = 5, max_rows = 11, v = -1):
         if journal is not None:
@@ -80,10 +80,6 @@ class Correspondent:
     def print_table(self, table_name, column_names, row_names, list_of_rows, subtable_borders = None, w = None, align = None, hline = None, header_separation = 2, v = -1, agent = None):
         if journal is not None:
             journal.print_table(table_name, column_names, row_names, list_of_rows, subtable_borders = subtable_borders, w = w, align = align, hline = hline, header_separation = header_separation, v = v, agent = self.agent_ID)
-
-    def print_paragraph(self, msg, w = None, v = -1, n = 6, min_w = None):
-        if journal is not None:
-            journal.print_paragraph(msg, w = w, v = v, agent = self.agent_ID, n = n, min_w = min_w)
 
     def print_dinkus(self, w = None, v = -1):
         if journal is not None:

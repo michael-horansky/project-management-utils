@@ -187,10 +187,18 @@ class Journal():
         self.yes = yes
 
     def close_journal(self):
-        if self.print_on_the_fly:
-            if self.fancy_printing:
-                self.commit_last_line()
-            print("-" * 30 + " Process finished " + "-" * 30)
+
+        w = self.max_allowed_w(80)
+
+        while(self.depth > 0):
+            self.exit()
+
+        fancy_endline = PMU_funcs.st(color.bold(color.fg_highlight('green', " Process finished ", True)), w, '-', plain_len = 18)
+        plain_endline = PMU_funcs.st(" Process finished ", w, '-', plain_len = 18)
+        self.write_line(fancy_endline, plain_msg = plain_endline, temporary_elements = False)
+
+        if self.print_on_the_fly and self.fancy_printing:
+            self.commit_last_line()
 
     def dump(self, erase_journal_text = True):
         # dumps journal into string, resetting it to empty otherwise disabled
