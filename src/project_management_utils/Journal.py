@@ -237,16 +237,21 @@ class Journal():
         else:
             return max(0, min(self.max_row_width - (self.depth - self.depth_offset) * len(Journal.pipe) - (len(Journal.depth_offset_ellipsis) if self.depth_offset > 0 else 0), w))
 
-    def pipe_descent(self, i, n_steps):
-        # i is index of pipe
+    def connecting_pipe_w(self, n_steps, is_base):
+        w = n_steps * len(Journal.pipe) - 1
+        if is_base:
+            w -= len(Journal.depth_offset_ellipsis)
+        return w
 
-        plain_msg = '/' + '-' * (n_steps * len(Journal.pipe) - 2) + '/'
+    def pipe_descent(self, i, n_steps, is_base):
+        # i is index of pipe
+        plain_msg = '/' + '-' * self.connecting_pipe_w(n_steps, is_base) + '/'
         fancy_msg = self.gradual_highlight(i, plain_msg)
 
         self.write_forced_line(fancy_msg, plain_msg, no_pipes = True)
 
-    def pipe_ascent(self, i, n_steps):
-        plain_msg = '\\' + '-' * (n_steps * len(Journal.pipe) - 1) + '\\'
+    def pipe_ascent(self, i, n_steps, is_base):
+        plain_msg = '\\' + '-' * self.connecting_pipe_w(n_steps, is_base) + '\\'
         fancy_msg = self.gradual_highlight(i, plain_msg)
 
         self.write_forced_line(fancy_msg, plain_msg, no_pipes = True)
@@ -258,12 +263,12 @@ class Journal():
             num_steps = (self.max_row_width - Journal.min_active_width) // len(Journal.pipe)
             if self.depth == num_steps + 1:
                 self.depth_offset = num_steps
-                self.pipe_descent(self.depth - 1, num_steps)
+                self.pipe_descent(self.depth - 1, num_steps, True)
         else:
             num_steps = (self.max_row_width - Journal.min_active_width - len(Journal.depth_offset_ellipsis)) // len(Journal.pipe)
             if self.depth - self.depth_offset == num_steps + 1:
                 self.depth_offset += num_steps
-                self.pipe_descent(self.depth - 1, num_steps)
+                self.pipe_descent(self.depth - 1, num_steps, True)
 
     def decrease_depth_offset_if_needed(self):
         # Before an exit() call.
@@ -273,12 +278,12 @@ class Journal():
             # We must decrease the offset
             min_base_steps = (self.max_row_width - Journal.min_active_width) // len(Journal.pipe)
             if self.depth_offset == min_base_steps:
+                self.pipe_ascent(self.depth - 1, min_base_steps, True)
                 self.depth_offset = 0
-                self.pipe_ascent(self.depth - 1, min_base_steps)
             else:
                 general_steps = (self.max_row_width - Journal.min_active_width - len(Journal.depth_offset_ellipsis)) // len(Journal.pipe)
+                self.pipe_ascent(self.depth - 1, general_steps, False)
                 self.depth_offset -= general_steps
-                self.pipe_ascent(self.depth - 1, general_steps)
 
 
     # --------------------- Temporary elements management ---------------------
