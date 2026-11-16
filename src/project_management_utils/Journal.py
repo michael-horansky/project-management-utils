@@ -29,6 +29,13 @@ class Journal():
             ('cyan', True)
         ]
 
+    # When depth reaches a value for which the remaining available width is
+    # lower than min_active_width, all but the top of the stack is ignored and
+    # an ellipsis is displayed before pre().
+    min_active_width = 20
+
+    depth_offset_ellipsis = "..."
+
     # --------------------------- Class properties ----------------------------
 
     time_format = "%H:%M:%S" # Print time with
@@ -142,6 +149,7 @@ class Journal():
         self.journal_text = ""
         self.routine_stack = [] # every routine is [header, max required verbosity, agent, associated semaphor ID]
         self.depth = 0
+        self.depth_offset = 0 # If nonzero, we ignore the first depth_offset stack elements
 
         self.set_verbosity(verbosity) # The higher the verbosity, the more in detail the Journal is
         self.set_print_on_the_fly(print_on_the_fly) # If True, printing to terminal happens concurrently
@@ -181,8 +189,11 @@ class Journal():
         self.fancy_printing = fancy_printing
 
     def set_max_row_width(self, max_row_width):
-        if not isinstance(max_row_width, int) or max_row_width < 10:
-            raise ValueError("'Maximal row width' must be set to an integer value greater than 9.")
+        # Max row width must allow us to be able to save active width by
+        # increasing depth_offset and preserve at least min_active_width.
+        min_mrw = Journal.min_active_width + len(Journal.depth_offset_ellipsis) + 2 * len(Journal.pipe)
+        if not isinstance(max_row_width, int) or max_row_width < min_mrw:
+            raise ValueError(f"'Maximal row width' must be set to an integer value greater than {min_mrw - 1}.")
         self.max_row_width = max_row_width
 
     def set_yes(self, yes):
@@ -216,13 +227,37 @@ class Journal():
             self.journal_text = ""
         return(res)
 
-    # ----------------------------- Text wrapping -----------------------------
+    # ------------------------ Active width management ------------------------
 
     def max_allowed_w(self, w = None):
         if w is None:
-            return max(0, self.max_row_width - self.depth * len(Journal.pipe))
+            return max(0, self.max_row_width - (self.depth - self.depth_offset) * len(Journal.pipe) - (len(Journal.depth_offset_ellipsis) if self.depth_offset > 0 else 0))
         else:
-            return max(0, min(self.max_row_width - self.depth * len(Journal.pipe), w))
+            return max(0, min(self.max_row_width - (self.depth - self.depth_offset) * len(Journal.pipe) - (len(Journal.depth_offset_ellipsis) if self.depth_offset > 0 else 0), w))
+
+    def increase_depth_offset_if_needed(self):
+        # In anticipation of an enter() write call. If, after increasing depth
+        # by 1, the active width falls below min_active_width, we set depth_offset
+        # to the current depth.
+        if self.depth_offset == 0:
+            num_steps = (self.max_row_width - Journal.min_active_width) // len(Journal.pipe)
+            if self.depth == num_steps:
+                self.depth_offset = num_steps
+        else:
+            num_steps = (self.max_row_width - Journal.min_active_width - len(Journal.depth_offset_ellipsis)) // len(Journal.pipe)
+            if self.depth - self.depth_offset == num_steps:
+                self.depth_offset += num_steps
+
+    def decrease_depth_offset_if_needed(self):
+        # After an exit() call.
+        # This should always undo the increase (we visit the same numbers
+        # backwards).
+        if self.depth == self.depth_offset:
+            # We must decrease the offset
+            if self.depth_offset == (self.max_row_width - Journal.min_active_width) // len(Journal.pipe):
+                self.depth_offset = 0
+            else:
+                self.depth_offset -= (self.max_row_width - Journal.min_active_width - len(Journal.depth_offset_ellipsis)) // len(Journal.pipe)
 
     # --------------------- Temporary elements management ---------------------
 
@@ -330,11 +365,11 @@ class Journal():
             w -= 3
 
         # If we can't fit the temporary elements, we disable them
-        if self.get_temporary_elements_width() > w:
-            temporary_elements = False
-        else:
-            # We print temporary elements, which means we need to make space for them
+        if temporary_elements:
             temp_w = self.get_temporary_elements_width()
+            if temp_w > w:
+                temporary_elements = False
+                temp_w = 0
 
         if plain_msg is None:
             plain_msg = msg
@@ -411,7 +446,10 @@ class Journal():
 
         # Normalise arguments
         agent_pre, agent_plain_pre = self.get_agent_tag(agent)
-        temp_w = self.get_temporary_elements_width()
+        if temporary_elements:
+            temp_w = self.get_temporary_elements_width()
+        else:
+            temp_w = 0
         w = self.max_allowed_w(w)
 
         # If this is an exit, we must reserve three characters for the exit pre
@@ -986,6 +1024,10 @@ class Journal():
 
         self.routine_stack.append([header, max(v, self.get_stack_v()), agent, new_ID])
 
+        # We increase depth offset ahead of header write, so that the new
+        # routine is readable in the offset section.
+        self.increase_depth_offset_if_needed()
+
         if self.wrap_stack_messages:
             # Only plaintext can be wrapped.
             self.write(header_fancy, v, agent = agent, plain_msg = header)
@@ -1048,6 +1090,8 @@ class Journal():
             self.write(exit_msg_fancy, last_routine[1], plain_msg = exit_msg_plain, is_exit = True)
         else:
             self.write_line(exit_msg_fancy, last_routine[1], plain_msg = exit_msg_plain, is_exit = True)
+        # We decrease the stack offset after write, to bring us back.
+        self.decrease_depth_offset_if_needed()
         self.update_stack_agent()
         if was_it_semaphored:
             return process_duration
