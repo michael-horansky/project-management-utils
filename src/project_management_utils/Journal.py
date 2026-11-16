@@ -164,6 +164,7 @@ class Journal():
         self.last_printed_depth_offset = 0
         self.last_printed_padding = 0 # The padding required when committing the no temp line. = padding_length at preview - (len(plain no temp last line) - len(plain last line))
         self.last_printed_temporary_elements = None
+        self.last_no_pipes = None
 
         self.semaphor = Printable_Semaphor() # The in-house semaphor used to hang on a routine
         self.cur_semaphor_event = None
@@ -236,29 +237,50 @@ class Journal():
         else:
             return max(0, min(self.max_row_width - (self.depth - self.depth_offset) * len(Journal.pipe) - (len(Journal.depth_offset_ellipsis) if self.depth_offset > 0 else 0), w))
 
+    def pipe_descent(self, i, w):
+        # i is index of pipe
+        # w is the total width of the pipe
+
+        plain_message = '/' + '-' * (w - 2) + '/'
+        fancy_message = self.gradual_highlight(i, plain_msg)
+
+        self.write_forced_line(fancy_message, plain_message)
+
+    def pipe_ascent(self, i, w):
+        plain_message = '\\' + '-' * (w - 2) + '\\'
+        fancy_message = self.gradual_highlight(i, plain_msg)
+
+        self.write_forced_line(fancy_message, plain_message)
+
     def increase_depth_offset_if_needed(self):
-        # In anticipation of an enter() write call. If, after increasing depth
-        # by 1, the active width falls below min_active_width, we set depth_offset
-        # to the current depth.
+        # After an enter() call, we check if max_allowed_w falls below
+        # min_active_width. If yes, we print the pipe descent and raise offset.
         if self.depth_offset == 0:
             num_steps = (self.max_row_width - Journal.min_active_width) // len(Journal.pipe)
-            if self.depth == num_steps:
+            if self.depth == num_steps + 1:
                 self.depth_offset = num_steps
+                self.pipe_descent(self.depth, num_steps * len(Journal.pipe), no_pipes = True)
         else:
             num_steps = (self.max_row_width - Journal.min_active_width - len(Journal.depth_offset_ellipsis)) // len(Journal.pipe)
-            if self.depth - self.depth_offset == num_steps:
+            if self.depth - self.depth_offset == num_steps + 1:
                 self.depth_offset += num_steps
+                self.pipe_descent(self.depth, num_steps * len(Journal.pipe), no_pipes = True)
 
     def decrease_depth_offset_if_needed(self):
-        # After an exit() call.
+        # Before an exit() call.
         # This should always undo the increase (we visit the same numbers
         # backwards).
-        if self.depth == self.depth_offset and self.depth_offset > 0:
+        if self.depth == self.depth_offset + 1 and self.depth_offset > 0:
             # We must decrease the offset
-            if self.depth_offset == (self.max_row_width - Journal.min_active_width) // len(Journal.pipe):
+            min_base_steps = (self.max_row_width - Journal.min_active_width) // len(Journal.pipe)
+            if self.depth_offset == min_base_steps:
                 self.depth_offset = 0
+                self.pipe_ascent(self.depth, min_base_steps * len(Journal.pipe), no_pipes = True)
             else:
-                self.depth_offset -= (self.max_row_width - Journal.min_active_width - len(Journal.depth_offset_ellipsis)) // len(Journal.pipe)
+                general_steps = (self.max_row_width - Journal.min_active_width - len(Journal.depth_offset_ellipsis)) // len(Journal.pipe)
+                self.depth_offset -= general_steps
+                self.pipe_ascent(self.depth, general_steps * len(Journal.pipe), no_pipes = True)
+
 
     # --------------------- Temporary elements management ---------------------
 
@@ -285,15 +307,13 @@ class Journal():
     def pipe_stack(self, n, n_offset, allow_fancy = True):
         if self.fancy_printing and allow_fancy:
             res = ""
-            if n_offset > 0:
-                res += Journal.depth_offset_ellipsis
             for i in range(n_offset, n):
                 res += self.gradual_highlight(i, Journal.pipe)
             return(res)
         else:
-            return((Journal.depth_offset_ellipsis if n_offset > 0 else '') + Journal.pipe * (n - n_offset))
+            return(Journal.pipe * (n - n_offset))
 
-    def pre(self, allow_fancy = True, enforce_depth = None, enforce_depth_offset = None, temporary_elements = True):
+    def pre(self, allow_fancy = True, enforce_depth = None, enforce_depth_offset = None, temporary_elements = True, no_pipes = False):
         # prefix for current depth.
 
         if enforce_depth is None:
@@ -301,8 +321,12 @@ class Journal():
         if enforce_depth_offset is None:
             enforce_depth_offset = self.depth_offset
 
-        # The general form is [pipes] [temporary elements (in highlight only)]
-        res = self.pipe_stack(enforce_depth, enforce_depth_offset, allow_fancy = allow_fancy)
+        # The general form is [offset ellipsis] [pipes] [temporary elements (in highlight only)]
+        res = ""
+        if self.last_printed_depth_offset > 0:
+            res += Journal.depth_offset_ellipsis
+        if not no_pipes:
+            res += self.pipe_stack(enforce_depth, enforce_depth_offset, allow_fancy = allow_fancy)
         if temporary_elements and self.fancy_printing and allow_fancy:
             res += self.get_temporary_elements()
         return res
@@ -338,8 +362,9 @@ class Journal():
             self.last_printed_depth_offset = 0
             self.last_printed_padding = 0
             self.last_printed_temporary_elements = None
+            self.last_no_pipes = None
 
-    def preview_print(self, msg, update_preview = True, temporary_elements = True, msg_no_temp = None, msg_no_temp_diff = 0):
+    def preview_print(self, msg, update_preview = True, temporary_elements = True, msg_no_temp = None, msg_no_temp_diff = 0, no_pipes = False):
         # If fancy printing is enabled, we always pre-print the last line in bold
         if update_preview:
             self.last_printed_line = msg
@@ -348,13 +373,28 @@ class Journal():
             self.last_printed_depth_offset = self.depth_offset
             self.last_printed_padding = max(0, (self.get_temporary_elements_width() if temporary_elements else 0) - msg_no_temp_diff)
             self.last_printed_temporary_elements = temporary_elements
-        print(self.pre(enforce_depth = self.last_printed_depth, enforce_depth_offset = self.last_printed_depth_offset, temporary_elements = temporary_elements) + color.bold(msg), end="\r")
+            self.last_no_pipes = no_pipes
+        print(self.pre(enforce_depth = self.last_printed_depth, enforce_depth_offset = self.last_printed_depth_offset, temporary_elements = temporary_elements, no_pipes = self.last_no_pipes) + color.bold(msg), end="\r")
 
     def reload_preview(self):
         if self.print_on_the_fly and self.fancy_printing and self.last_printed_line is not None:
             self.preview_print(self.last_printed_line, update_preview = False, temporary_elements = self.last_printed_temporary_elements)
 
     # ----------------------------- Write method ------------------------------
+
+    def write_forced_line(self, msg, plain_msg, msg_no_temp = None, msg_no_temp_diff = 0, prevent_printing_on_the_fly = False, record_to_journal = True, temporary_elements = True, no_pipes = False):
+        # An internal method only.
+        # Prints a line which is already safe to print
+        if record_to_journal:
+            self.journal_text += self.pre(allow_fancy = False, no_pipes = no_pipes) + plain_msg + "\n"
+        if self.print_on_the_fly and not prevent_printing_on_the_fly:
+            if self.fancy_printing:
+                # We firstly print the last submitted line, and then the preprint of the current line
+                self.commit_last_line()
+                self.preview_print(msg, temporary_elements = temporary_elements, msg_no_temp = msg_no_temp, msg_no_temp_diff = msg_no_temp_diff, no_pipes = no_pipes)
+            else:
+                # crude printing only
+                print(self.pre(allow_fancy = False, no_pipes = no_pipes) + plain_msg)
 
     def write_line(self, msg, v = -1, prevent_printing_on_the_fly = False, record_to_journal = True, plain_msg = None, agent = None, temporary_elements = True, is_exit = False):
         # Internal method to display message for which both fancy text and
@@ -406,7 +446,8 @@ class Journal():
             msg_no_temp = fancy_exit_pre + msg_no_temp
             plain_msg = plain_exit_pre + plain_msg
 
-        if record_to_journal:
+        self.write_forced_line(msg, plain_msg, msg_no_temp = msg_no_temp, msg_no_temp_diff = msg_no_temp_diff, prevent_printing_on_the_fly = prevent_printing_on_the_fly, record_to_journal = record_to_journal, temporary_elements = temporary_elements)
+        """if record_to_journal:
             self.journal_text += self.pre(allow_fancy = False) + plain_msg + "\n"
         if self.print_on_the_fly and not prevent_printing_on_the_fly:
             if self.fancy_printing:
@@ -415,7 +456,7 @@ class Journal():
                 self.preview_print(msg, temporary_elements = temporary_elements, msg_no_temp = msg_no_temp, msg_no_temp_diff = msg_no_temp_diff)
             else:
                 # crude printing only
-                print(self.pre(allow_fancy = False) + plain_msg)
+                print(self.pre(allow_fancy = False) + plain_msg)"""
 
 
     def write(self, msg, v = -1, w = None, n = 6, min_w = None, prevent_printing_on_the_fly = False, plain_msg = None, agent = None, temporary_elements = True, is_exit = False):
@@ -478,6 +519,13 @@ class Journal():
         if w < min_w + temp_w:
             # No wrapping, just a trim
 
+            self.write_forced_line(
+                fancy_exit_pre + plain_msg[:w - temp_w],
+                plain_exit_pre + plain_msg[:w],
+                msg_no_temp = fancy_exit_pre + plain_msg[:w - temp_w],
+                msg_no_temp_diff = temp_w,
+                prevent_printing_on_the_fly = prevent_printing_on_the_fly, temporary_elements = temporary_elements)
+            """
             self.journal_text += self.pre(allow_fancy = False) + plain_exit_pre + plain_msg[:w] + "\n"
             if self.print_on_the_fly and not prevent_printing_on_the_fly:
                 if self.fancy_printing:
@@ -486,7 +534,7 @@ class Journal():
                     self.preview_print(fancy_exit_pre + plain_msg[:w - temp_w], temporary_elements = temporary_elements)
                 else:
                     # crude printing only
-                    print(self.pre(allow_fancy = False) + plain_exit_pre + plain_msg[:w])
+                    print(self.pre(allow_fancy = False) + plain_exit_pre + plain_msg[:w])"""
             return
 
         # We firstly append the plain agent tag placeholder to msg in order to
@@ -1033,9 +1081,6 @@ class Journal():
 
         self.routine_stack.append([header, max(v, self.get_stack_v()), agent, new_ID])
 
-        # We increase depth offset ahead of header write, so that the new
-        # routine is readable in the offset section.
-        self.increase_depth_offset_if_needed()
 
         if self.wrap_stack_messages:
             # Only plaintext can be wrapped.
@@ -1045,6 +1090,9 @@ class Journal():
         self.depth += 1
 
         self.update_stack_agent()
+
+        # We increase depth offset if active width falls below safe limit
+        self.increase_depth_offset_if_needed()
 
         if semaphored:
             return new_ID
@@ -1080,6 +1128,8 @@ class Journal():
         # If popping a semaphor, it will return the duration in ms
         last_routine = self.routine_stack.pop()
 
+        # We decrease the stack offset after write, to bring us back.
+        self.decrease_depth_offset_if_needed()
 
         if end_message is not None:
             exit_msg_plain = end_message
@@ -1099,8 +1149,6 @@ class Journal():
             self.write(exit_msg_fancy, last_routine[1], plain_msg = exit_msg_plain, is_exit = True)
         else:
             self.write_line(exit_msg_fancy, last_routine[1], plain_msg = exit_msg_plain, is_exit = True)
-        # We decrease the stack offset after write, to bring us back.
-        self.decrease_depth_offset_if_needed()
         self.update_stack_agent()
         if was_it_semaphored:
             return process_duration
