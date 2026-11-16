@@ -237,17 +237,16 @@ class Journal():
         else:
             return max(0, min(self.max_row_width - (self.depth - self.depth_offset) * len(Journal.pipe) - (len(Journal.depth_offset_ellipsis) if self.depth_offset > 0 else 0), w))
 
-    def pipe_descent(self, i, w):
+    def pipe_descent(self, i, n_steps):
         # i is index of pipe
-        # w is the total width of the pipe
 
-        plain_msg = '/' + '-' * (w - 2) + '/'
+        plain_msg = '/' + '-' * (n_steps * len(Journal.pipe) - 2) + '/'
         fancy_msg = self.gradual_highlight(i, plain_msg)
 
         self.write_forced_line(fancy_msg, plain_msg, no_pipes = True)
 
-    def pipe_ascent(self, i, w):
-        plain_msg = '\\' + '-' * (w - 2) + '\\'
+    def pipe_ascent(self, i, n_steps):
+        plain_msg = '\\' + '-' * (n_steps * len(Journal.pipe) - 1) + '\\'
         fancy_msg = self.gradual_highlight(i, plain_msg)
 
         self.write_forced_line(fancy_msg, plain_msg, no_pipes = True)
@@ -259,12 +258,12 @@ class Journal():
             num_steps = (self.max_row_width - Journal.min_active_width) // len(Journal.pipe)
             if self.depth == num_steps + 1:
                 self.depth_offset = num_steps
-                self.pipe_descent(self.depth - 1, num_steps * len(Journal.pipe))
+                self.pipe_descent(self.depth - 1, num_steps)
         else:
             num_steps = (self.max_row_width - Journal.min_active_width - len(Journal.depth_offset_ellipsis)) // len(Journal.pipe)
             if self.depth - self.depth_offset == num_steps + 1:
                 self.depth_offset += num_steps
-                self.pipe_descent(self.depth - 1, num_steps * len(Journal.pipe))
+                self.pipe_descent(self.depth - 1, num_steps)
 
     def decrease_depth_offset_if_needed(self):
         # Before an exit() call.
@@ -275,11 +274,11 @@ class Journal():
             min_base_steps = (self.max_row_width - Journal.min_active_width) // len(Journal.pipe)
             if self.depth_offset == min_base_steps:
                 self.depth_offset = 0
-                self.pipe_ascent(self.depth - 1, min_base_steps * len(Journal.pipe))
+                self.pipe_ascent(self.depth - 1, min_base_steps)
             else:
                 general_steps = (self.max_row_width - Journal.min_active_width - len(Journal.depth_offset_ellipsis)) // len(Journal.pipe)
                 self.depth_offset -= general_steps
-                self.pipe_ascent(self.depth - 1, general_steps * len(Journal.pipe))
+                self.pipe_ascent(self.depth - 1, general_steps)
 
 
     # --------------------- Temporary elements management ---------------------
@@ -304,6 +303,11 @@ class Journal():
     def gradual_highlight(self, i, msg):
         return color.fg_highlight(Journal.gradual_fg_color[i % len(Journal.gradual_fg_color)][0], msg, Journal.gradual_fg_color[i % len(Journal.gradual_fg_color)][1])
 
+    def depth_offset_pre(self, offset):
+        if offset > 0:
+            return Journal.depth_offset_ellipsis
+        return ''
+
     def pipe_stack(self, n, n_offset, allow_fancy = True):
         if self.fancy_printing and allow_fancy:
             res = ""
@@ -322,9 +326,7 @@ class Journal():
             enforce_depth_offset = self.depth_offset
 
         # The general form is [offset ellipsis] [pipes] [temporary elements (in highlight only)]
-        res = ""
-        if self.last_printed_depth_offset > 0:
-            res += Journal.depth_offset_ellipsis
+        res = self.depth_offset_pre(self.last_printed_depth_offset)
         if not no_pipes:
             res += self.pipe_stack(enforce_depth, enforce_depth_offset, allow_fancy = allow_fancy)
         if temporary_elements and self.fancy_printing and allow_fancy:
@@ -355,7 +357,7 @@ class Journal():
 
     def commit_last_line(self):
         if self.last_printed_line_no_temp is not None:
-            msg = ''
+            msg = self.depth_offset_pre(self.last_printed_depth_offset)
             if not self.last_no_pipes:
                 msg += self.pipe_stack(self.last_printed_depth, self.last_printed_depth_offset)
             msg += self.last_printed_line_no_temp + ' ' * self.last_printed_padding
