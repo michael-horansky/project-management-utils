@@ -244,13 +244,13 @@ class Journal():
         plain_message = '/' + '-' * (w - 2) + '/'
         fancy_message = self.gradual_highlight(i, plain_msg)
 
-        self.write_forced_line(fancy_message, plain_message)
+        self.write_forced_line(fancy_message, plain_message, no_pipes = True)
 
     def pipe_ascent(self, i, w):
         plain_message = '\\' + '-' * (w - 2) + '\\'
         fancy_message = self.gradual_highlight(i, plain_msg)
 
-        self.write_forced_line(fancy_message, plain_message)
+        self.write_forced_line(fancy_message, plain_message, no_pipes = True)
 
     def increase_depth_offset_if_needed(self):
         # After an enter() call, we check if max_allowed_w falls below
@@ -259,12 +259,12 @@ class Journal():
             num_steps = (self.max_row_width - Journal.min_active_width) // len(Journal.pipe)
             if self.depth == num_steps + 1:
                 self.depth_offset = num_steps
-                self.pipe_descent(self.depth, num_steps * len(Journal.pipe), no_pipes = True)
+                self.pipe_descent(self.depth, num_steps * len(Journal.pipe))
         else:
             num_steps = (self.max_row_width - Journal.min_active_width - len(Journal.depth_offset_ellipsis)) // len(Journal.pipe)
             if self.depth - self.depth_offset == num_steps + 1:
                 self.depth_offset += num_steps
-                self.pipe_descent(self.depth, num_steps * len(Journal.pipe), no_pipes = True)
+                self.pipe_descent(self.depth, num_steps * len(Journal.pipe))
 
     def decrease_depth_offset_if_needed(self):
         # Before an exit() call.
@@ -275,11 +275,11 @@ class Journal():
             min_base_steps = (self.max_row_width - Journal.min_active_width) // len(Journal.pipe)
             if self.depth_offset == min_base_steps:
                 self.depth_offset = 0
-                self.pipe_ascent(self.depth, min_base_steps * len(Journal.pipe), no_pipes = True)
+                self.pipe_ascent(self.depth, min_base_steps * len(Journal.pipe))
             else:
                 general_steps = (self.max_row_width - Journal.min_active_width - len(Journal.depth_offset_ellipsis)) // len(Journal.pipe)
                 self.depth_offset -= general_steps
-                self.pipe_ascent(self.depth, general_steps * len(Journal.pipe), no_pipes = True)
+                self.pipe_ascent(self.depth, general_steps * len(Journal.pipe))
 
 
     # --------------------- Temporary elements management ---------------------
