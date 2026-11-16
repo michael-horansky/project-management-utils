@@ -251,7 +251,7 @@ class Journal():
         self.write_forced_line(fancy_msg, plain_msg, no_pipes = True)
 
     def pipe_ascent(self, i, n_steps, is_base):
-        plain_msg = '\\' + '-' * self.connecting_pipe_w(n_steps, is_base) + '\\'
+        plain_msg = '\\' + '-' * (self.connecting_pipe_w(n_steps, is_base) - 1) + '\\'
         fancy_msg = self.gradual_highlight(i, plain_msg)
 
         self.write_forced_line(fancy_msg, plain_msg, no_pipes = True)
@@ -268,7 +268,7 @@ class Journal():
             num_steps = (self.max_row_width - Journal.min_active_width - len(Journal.depth_offset_ellipsis)) // len(Journal.pipe)
             if self.depth - self.depth_offset == num_steps + 1:
                 self.depth_offset += num_steps
-                self.pipe_descent(self.depth - 1, num_steps, True)
+                self.pipe_descent(self.depth - 1, num_steps, False)
 
     def decrease_depth_offset_if_needed(self):
         # Before an exit() call.
