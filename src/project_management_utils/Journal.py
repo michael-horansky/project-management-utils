@@ -331,7 +331,7 @@ class Journal():
 
     def commit_last_line(self):
         if self.last_printed_line_no_temp is not None:
-            print(self.pipe_stack(self.last_printed_depth) + self.last_printed_line_no_temp + ' ' * self.last_printed_padding)
+            print(self.pipe_stack(self.last_printed_depth, self.last_printed_depth_offset) + self.last_printed_line_no_temp + ' ' * self.last_printed_padding)
             self.last_printed_line = None
             self.last_printed_line_no_temp = None
             self.last_printed_depth = 0
