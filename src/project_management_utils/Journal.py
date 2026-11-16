@@ -259,12 +259,12 @@ class Journal():
             num_steps = (self.max_row_width - Journal.min_active_width) // len(Journal.pipe)
             if self.depth == num_steps + 1:
                 self.depth_offset = num_steps
-                self.pipe_descent(self.depth, num_steps * len(Journal.pipe))
+                self.pipe_descent(self.depth - 1, num_steps * len(Journal.pipe))
         else:
             num_steps = (self.max_row_width - Journal.min_active_width - len(Journal.depth_offset_ellipsis)) // len(Journal.pipe)
             if self.depth - self.depth_offset == num_steps + 1:
                 self.depth_offset += num_steps
-                self.pipe_descent(self.depth, num_steps * len(Journal.pipe))
+                self.pipe_descent(self.depth - 1, num_steps * len(Journal.pipe))
 
     def decrease_depth_offset_if_needed(self):
         # Before an exit() call.
@@ -275,11 +275,11 @@ class Journal():
             min_base_steps = (self.max_row_width - Journal.min_active_width) // len(Journal.pipe)
             if self.depth_offset == min_base_steps:
                 self.depth_offset = 0
-                self.pipe_ascent(self.depth, min_base_steps * len(Journal.pipe))
+                self.pipe_ascent(self.depth - 1, min_base_steps * len(Journal.pipe))
             else:
                 general_steps = (self.max_row_width - Journal.min_active_width - len(Journal.depth_offset_ellipsis)) // len(Journal.pipe)
                 self.depth_offset -= general_steps
-                self.pipe_ascent(self.depth, general_steps * len(Journal.pipe))
+                self.pipe_ascent(self.depth - 1, general_steps * len(Journal.pipe))
 
 
     # --------------------- Temporary elements management ---------------------
@@ -355,7 +355,11 @@ class Journal():
 
     def commit_last_line(self):
         if self.last_printed_line_no_temp is not None:
-            print(self.pipe_stack(self.last_printed_depth, self.last_printed_depth_offset) + self.last_printed_line_no_temp + ' ' * self.last_printed_padding)
+            msg = ''
+            if not self.last_no_pipes:
+                msg += self.pipe_stack(self.last_printed_depth, self.last_printed_depth_offset)
+            msg += self.last_printed_line_no_temp + ' ' * self.last_printed_padding
+            print(msg)
             self.last_printed_line = None
             self.last_printed_line_no_temp = None
             self.last_printed_depth = 0
