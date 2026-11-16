@@ -326,7 +326,7 @@ class Journal():
             enforce_depth_offset = self.depth_offset
 
         # The general form is [offset ellipsis] [pipes] [temporary elements (in highlight only)]
-        res = self.depth_offset_pre(self.last_printed_depth_offset)
+        res = self.depth_offset_pre(enforce_depth_offset)
         if not no_pipes:
             res += self.pipe_stack(enforce_depth, enforce_depth_offset, allow_fancy = allow_fancy)
         if temporary_elements and self.fancy_printing and allow_fancy:
