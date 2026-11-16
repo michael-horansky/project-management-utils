@@ -241,16 +241,16 @@ class Journal():
         # i is index of pipe
         # w is the total width of the pipe
 
-        plain_message = '/' + '-' * (w - 2) + '/'
-        fancy_message = self.gradual_highlight(i, plain_msg)
+        plain_msg = '/' + '-' * (w - 2) + '/'
+        fancy_msg = self.gradual_highlight(i, plain_msg)
 
-        self.write_forced_line(fancy_message, plain_message, no_pipes = True)
+        self.write_forced_line(fancy_msg, plain_msg, no_pipes = True)
 
     def pipe_ascent(self, i, w):
-        plain_message = '\\' + '-' * (w - 2) + '\\'
-        fancy_message = self.gradual_highlight(i, plain_msg)
+        plain_msg = '\\' + '-' * (w - 2) + '\\'
+        fancy_msg = self.gradual_highlight(i, plain_msg)
 
-        self.write_forced_line(fancy_message, plain_message, no_pipes = True)
+        self.write_forced_line(fancy_msg, plain_msg, no_pipes = True)
 
     def increase_depth_offset_if_needed(self):
         # After an enter() call, we check if max_allowed_w falls below
