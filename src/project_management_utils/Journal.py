@@ -281,14 +281,14 @@ class Journal():
     def gradual_highlight(self, i, msg):
         return color.fg_highlight(Journal.gradual_fg_color[i % len(Journal.gradual_fg_color)][0], msg, Journal.gradual_fg_color[i % len(Journal.gradual_fg_color)][1])
 
-    def pipe_stack(self, n, allow_fancy = True):
+    def pipe_stack(self, cur_depth, allow_fancy = True):
         if self.fancy_printing and allow_fancy:
             res = ""
-            for i in range(n):
+            for i in range(self.depth_offset, cur_depth):
                 res += self.gradual_highlight(i, Journal.pipe)
             return(res)
         else:
-            return(Journal.pipe * n)
+            return(Journal.pipe * cur_depth)
 
     def pre(self, allow_fancy = True, enforce_depth = None, temporary_elements = True):
         # prefix for current depth.
@@ -696,6 +696,8 @@ class Journal():
 
 
         # Now, we calculate how many numbers we can afford to print to respect the line length
+        w = self.max_allowed_w()
+
         col_width = [0] * len(m[0])
         for i in range(len(m)):
             for j in range(len(m[0])):
@@ -703,10 +705,10 @@ class Journal():
                 if cur_len > col_width[j]:
                     col_width[j] = cur_len
 
-        do_rows_need_trimming = sum(col_width) > (self.max_row_width - len(Journal.pipe) * self.depth - len(label) - 3)
+        do_rows_need_trimming = sum(col_width) > (w - len(label) - 3)
         if do_rows_need_trimming:
             trim_N = 0 # number of entries we can display
-            row_leeway = self.max_row_width - len(Journal.pipe) * self.depth - len(label) - 6 - col_width[-1]
+            row_leeway = w - len(label) - 6 - col_width[-1]
             while(sum(col_width[:trim_N]) <= row_leeway and trim_N < len(m[0]) - 1):
                 trim_N += 1
             trim_N = max(0, trim_N - 1)
