@@ -253,7 +253,7 @@ class Journal():
         # After an exit() call.
         # This should always undo the increase (we visit the same numbers
         # backwards).
-        if self.depth == self.depth_offset:
+        if self.depth == self.depth_offset and self.depth_offset > 0:
             # We must decrease the offset
             if self.depth_offset == (self.max_row_width - Journal.min_active_width) // len(Journal.pipe):
                 self.depth_offset = 0

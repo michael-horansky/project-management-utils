@@ -109,11 +109,11 @@ class Disk_Jockey():
     def create_data_nodes(self, data_nodes):
         # data_nodes[data_group][datum_name] = datum_type
 
-        self.log.enter("Creating data nodes...", 4)
+        self.log.enter("Creating data nodes", 4)
 
         for data_group, data_setups in data_nodes.items():
 
-            self.log.enter(f"Updating node '{data_group}'...", 5)
+            self.log.enter(f"Updating node '{data_group}'", 5)
 
             if data_group not in self.data_nodes.keys():
                 # We add new data_group to all keys
@@ -200,7 +200,7 @@ class Disk_Jockey():
         # data_group specifies subdirectory name.
         # datum_name specifies filename
 
-        self.log.enter(f"Saving datum at {data_group}/{datum_name} to disk...", 3)
+        self.log.enter(f"Saving datum at {data_group}/{datum_name} to disk", 3)
 
         if (not self.did_load_from_disk):
 
@@ -301,7 +301,7 @@ class Disk_Jockey():
     def load_datum(self, data_group, datum_name):
         self.did_load_from_disk = True
 
-        self.log.enter(f"Loading datum at {data_group}/{datum_name} from disk...", 3)
+        self.log.enter(f"Loading datum at {data_group}/{datum_name} from disk", 3)
 
         if self.is_data_initialised[data_group][datum_name]:
             self.log.warning(f"Overwriting an initialised data node at '{data_group}/{datum_name}' with data from disk.")
