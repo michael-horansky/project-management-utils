@@ -161,6 +161,7 @@ class Journal():
         self.last_printed_line = None # Always printed with \r until next line is staged, with different colour
         self.last_printed_line_no_temp = None # Sometimes we trim the line to make space for temporary elements. When that happens, we store the less trimmed version to print when committing the line.
         self.last_printed_depth = 0
+        self.last_printed_depth_offset = 0
         self.last_printed_padding = 0 # The padding required when committing the no temp line. = padding_length at preview - (len(plain no temp last line) - len(plain last line))
         self.last_printed_temporary_elements = None
 
@@ -281,23 +282,27 @@ class Journal():
     def gradual_highlight(self, i, msg):
         return color.fg_highlight(Journal.gradual_fg_color[i % len(Journal.gradual_fg_color)][0], msg, Journal.gradual_fg_color[i % len(Journal.gradual_fg_color)][1])
 
-    def pipe_stack(self, cur_depth, allow_fancy = True):
+    def pipe_stack(self, n, n_offset, allow_fancy = True):
         if self.fancy_printing and allow_fancy:
             res = ""
-            for i in range(self.depth_offset, cur_depth):
+            if n_offset > 0:
+                res += Journal.depth_offset_ellipsis
+            for i in range(n_offset, n):
                 res += self.gradual_highlight(i, Journal.pipe)
             return(res)
         else:
-            return(Journal.pipe * cur_depth)
+            return((Journal.depth_offset_ellipsis if n_offset > 0 else '') + Journal.pipe * (n - n_offset))
 
-    def pre(self, allow_fancy = True, enforce_depth = None, temporary_elements = True):
+    def pre(self, allow_fancy = True, enforce_depth = None, enforce_depth_offset = None, temporary_elements = True):
         # prefix for current depth.
 
         if enforce_depth is None:
             enforce_depth = self.depth
+        if enforce_depth_offset is None:
+            enforce_depth_offset = self.depth_offset
 
         # The general form is [pipes] [temporary elements (in highlight only)]
-        res = self.pipe_stack(enforce_depth, allow_fancy)
+        res = self.pipe_stack(enforce_depth, allow_fancy = allow_fancy)
         if temporary_elements and self.fancy_printing and allow_fancy:
             res += self.get_temporary_elements()
         return res
@@ -330,6 +335,7 @@ class Journal():
             self.last_printed_line = None
             self.last_printed_line_no_temp = None
             self.last_printed_depth = 0
+            self.last_printed_depth_offset = 0
             self.last_printed_padding = 0
             self.last_printed_temporary_elements = None
 
@@ -339,9 +345,10 @@ class Journal():
             self.last_printed_line = msg
             self.last_printed_line_no_temp = msg_no_temp if msg_no_temp is not None else msg
             self.last_printed_depth = self.depth
+            self.last_printed_depth_offset = self.depth_offset
             self.last_printed_padding = max(0, (self.get_temporary_elements_width() if temporary_elements else 0) - msg_no_temp_diff)
             self.last_printed_temporary_elements = temporary_elements
-        print(self.pre(enforce_depth = self.last_printed_depth, temporary_elements = temporary_elements) + color.bold(msg), end="\r")
+        print(self.pre(enforce_depth = self.last_printed_depth, enforce_depth_offset = self.last_printed_depth_offset, temporary_elements = temporary_elements) + color.bold(msg), end="\r")
 
     def reload_preview(self):
         if self.print_on_the_fly and self.fancy_printing and self.last_printed_line is not None:
