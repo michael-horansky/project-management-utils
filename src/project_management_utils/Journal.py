@@ -302,7 +302,7 @@ class Journal():
             enforce_depth_offset = self.depth_offset
 
         # The general form is [pipes] [temporary elements (in highlight only)]
-        res = self.pipe_stack(enforce_depth, allow_fancy = allow_fancy)
+        res = self.pipe_stack(enforce_depth, enforce_depth_offset, allow_fancy = allow_fancy)
         if temporary_elements and self.fancy_printing and allow_fancy:
             res += self.get_temporary_elements()
         return res
