@@ -20,7 +20,7 @@ class Journal():
     # ------------------------ Typographical constants ------------------------
 
     pipe = "| "
-    asterism = " * * * "
+    asterism = "* * *"
 
     gradual_fg_color = [ # used for pipes. Highlights routine depth. Cycles.
             ('blue', True),
@@ -35,6 +35,8 @@ class Journal():
     min_active_width = 20
 
     depth_offset_ellipsis = "..."
+
+    header_width = 80
 
     # --------------------------- Class properties ----------------------------
 
@@ -173,6 +175,15 @@ class Journal():
         self.agent_tags = {} # Used to distinguish write sources. Each tag has the form "agent" : {"label" : "agent name", "color" : "color code"}
         self.stack_agent = None
 
+        # We start the highlight roll if necessary
+        opening_fancy, opening_plain = self.get_header('Process started')
+        self.journal_text += opening_plain + "\n"
+        if self.print_on_the_fly:
+            if self.fancy_printing:
+                self.preview_print(opening_fancy)
+            else:
+                print(self.pre(allow_fancy = False) + opening_plain)
+
     # --------------- Post-initialisation parameter assignment ----------------
 
     def set_verbosity(self, v):
@@ -210,14 +221,10 @@ class Journal():
 
     def close_journal(self):
 
-        w = self.max_allowed_w(80)
-
         while(self.depth > 0):
             self.exit()
 
-        fancy_endline = PMU_funcs.st(color.bold(color.fg_highlight('green', " Process finished ", True)), w, '-', plain_len = 18)
-        plain_endline = PMU_funcs.st(" Process finished ", w, '-', plain_len = 18)
-        self.write_line(fancy_endline, plain_msg = plain_endline, temporary_elements = False)
+        self.print_header('Process finished')
 
         if self.print_on_the_fly and self.fancy_printing:
             self.commit_last_line()
@@ -1062,13 +1069,24 @@ class Journal():
         for line in wrapped_msg:
             self.write(line, v = v, agent = agent)"""
 
+    def get_header(self, msg, c = ('green', True)):
+        w = self.max_allowed_w(Journal.header_width)
+        fancy_header = PMU_funcs.st(
+            ' ' + color.bold(color.fg_highlight(c[0], msg, c[1])) + ' ',
+            w,
+            '-',
+            plain_len = len(msg) + 2
+            )
+        plain_header = PMU_funcs.st(' ' + msg + ' ', w, '-')
+        return (fancy_header, plain_header)
+
+    def print_header(self, msg, c = ('green', True), v = -1, agent = None):
+        fancy_header, plain_header = self.get_header(msg, c = c)
+        self.write_line(fancy_endline, v = v, agent = agent, plain_msg = plain_endline, temporary_elements = False)
+
 
     def print_dinkus(self, w = None, v = -1, agent = None):
-        w = self.max_allowed_w(w)
-        if w < len(Journal.asterism):
-            # Cannot print anything
-            return
-        self.write_line(PMU_funcs.st(color.fg_highlight('yellow', Journal.asterism, True), w, '-', plain_len = len(Journal.asterism)), v = v, plain_msg = PMU_funcs.st(Journal.asterism, w, '-'), agent = agent)
+        self.print_header(Journal.asterism, c = ('yellow', True), v = v, agent = agent)
 
     # Routine stack management
 
