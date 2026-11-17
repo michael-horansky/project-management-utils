@@ -366,7 +366,7 @@ class Journal():
             msg = self.depth_offset_pre(self.last_printed_depth_offset)
             if not self.last_no_pipes:
                 msg += self.pipe_stack(self.last_printed_depth, self.last_printed_depth_offset)
-            msg += self.last_printed_line_no_temp + ' ' * self.last_printed_padding + f" X {self.last_printed_padding}"
+            msg += self.last_printed_line_no_temp + ' ' * self.last_printed_padding
             print(msg)
             self.last_printed_line = None
             self.last_printed_line_no_temp = None
@@ -375,6 +375,8 @@ class Journal():
             self.last_printed_padding = 0
             self.last_printed_temporary_elements = None
             self.last_no_pipes = None
+        else:
+            raise Exception("commit_last_line called but no preview line stored.")
 
     def preview_print(self, msg = None, update_preview = True, temporary_elements = True, msg_no_temp = None, msg_no_temp_diff = 0, no_pipes = False):
         # If fancy printing is enabled, we always pre-print the last line in bold
