@@ -636,7 +636,7 @@ class Journal():
                 for i in range(len(sequenced_msg) - 1):
                     print(self.pre(temporary_elements = False) + (fancy_exit_pre if i == 0 else exit_offset) + sequenced_msg[i])
 
-                self.preview_print((fancy_exit_pre if len(sequenced_msg) == 1 else exit_offset) + sequenced_msg[-1], temporary_elements = temporary_elements)
+                self.preview_print((fancy_exit_pre if len(sequenced_msg) == 1 and sequenced_msg[-1] != '' else exit_offset) + sequenced_msg[-1], temporary_elements = temporary_elements)
             else:
                 # crude printing only
                 for i in range(len(sequenced_msg)):
