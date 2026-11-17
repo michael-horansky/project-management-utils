@@ -4,11 +4,39 @@ from .color import color
 from .Printable_Semaphor import Printable_Semaphor
 
 # -----------------------------------------------------------------------------
-# -------------------------- Typographical constants --------------------------
+# ------------------------------ class Lineroll -------------------------------
 # -----------------------------------------------------------------------------
+# Auxiliary class which helps Journal manage the rolling highlight.
+# Journal possesses one instance of Lineroll.
 
-# ---------------------------------- Colors -----------------------------------
+class Lineroll():
 
+    def __init__(self):
+
+        self.msg = None # Always printed with \r until next line is staged, with different colour
+        self.msg_no_temp = None # Sometimes we trim the line to make space for temporary elements. When that happens, we store the less trimmed version to print when committing the line.
+        self.depth = 0
+        self.depth_offset = 0
+        self.padding = 0 # The padding required when committing the no temp line. = padding_length at preview - (len(plain no temp last line) - len(plain last line))
+        self.temporary_elements = None
+        self.no_pipes = None
+
+        self.rolling = False
+
+    def start(self, msg, msg_no_temp, depth, depth_offset, padding, temporary_elements, no_pipes, temp_only = False):
+        self.msg = msg
+        self.msg_no_temp = msg_no_temp
+        self.depth = depth
+        self.depth_offset = depth_offset
+        self.padding = padding
+        self.temporary_elements = None
+        self.no_pipes = None
+        # TODO temp_only for empty msgs only printed for temp
+
+        self.rolling = True
+
+    def stop(self):
+        self.rolling = False
 
 
 # -----------------------------------------------------------------------------
@@ -160,13 +188,7 @@ class Journal():
         self.set_yes(yes) # If not None, used instead of asking for input
         self.set_wrap_stack_messages(wrap_stack_messages) # whether enter/exit messages are wrapped or trimmed
 
-        self.last_printed_line = None # Always printed with \r until next line is staged, with different colour
-        self.last_printed_line_no_temp = None # Sometimes we trim the line to make space for temporary elements. When that happens, we store the less trimmed version to print when committing the line.
-        self.last_printed_depth = 0
-        self.last_printed_depth_offset = 0
-        self.last_printed_padding = 0 # The padding required when committing the no temp line. = padding_length at preview - (len(plain no temp last line) - len(plain last line))
-        self.last_printed_temporary_elements = None
-        self.last_no_pipes = None
+        self.lineroll = Lineroll()
 
         self.semaphor = Printable_Semaphor() # The in-house semaphor used to hang on a routine
         self.cur_semaphor_event = None
@@ -175,9 +197,7 @@ class Journal():
         self.agent_tags = {} # Used to distinguish write sources. Each tag has the form "agent" : {"label" : "agent name", "color" : "color code"}
         self.stack_agent = None
 
-        # We start the highlight roll if necessary
-        opening_fancy, opening_plain = self.get_header('Process started')
-        self.write_forced_line(opening_fancy, opening_plain, highlight_roll_start = True)
+        # We mark journal as not yet accessed, which means the highlight roll is yet to be started
 
     # --------------- Post-initialisation parameter assignment ----------------
 
@@ -367,36 +387,30 @@ class Journal():
     # ------------------------ Fancy printing methods -------------------------
 
     def commit_last_line(self):
-        if self.last_printed_line_no_temp is not None:
-            msg = self.depth_offset_pre(self.last_printed_depth_offset)
-            if not self.last_no_pipes:
-                msg += self.pipe_stack(self.last_printed_depth, self.last_printed_depth_offset)
-            msg += self.last_printed_line_no_temp + ' ' * self.last_printed_padding
+        if self.lineroll.rolling:
+            msg = self.depth_offset_pre(self.lineroll.depth_offset)
+            if not self.lineroll.no_pipes:
+                msg += self.pipe_stack(self.lineroll.depth, self.lineroll.depth_offset)
+            msg += self.lineroll.msg_no_temp + ' ' * self.lineroll.padding
             print(msg)
-            self.last_printed_line = None
-            self.last_printed_line_no_temp = None
-            self.last_printed_depth = 0
-            self.last_printed_depth_offset = 0
-            self.last_printed_padding = 0
-            self.last_printed_temporary_elements = None
-            self.last_no_pipes = None
-        else:
-            raise Exception("commit_last_line called but no preview line stored.")
+            self.lineroll.stop()
 
     def preview_print(self, msg = None, update_preview = True, temporary_elements = True, msg_no_temp = None, msg_no_temp_diff = 0, no_pipes = False):
         # If fancy printing is enabled, we always pre-print the last line in bold
         if update_preview:
-            self.last_printed_line = msg
-            self.last_printed_line_no_temp = msg_no_temp if msg_no_temp is not None else msg
-            self.last_printed_depth = self.depth
-            self.last_printed_depth_offset = self.depth_offset
-            self.last_printed_padding = max(0, (self.get_temporary_elements_width() if temporary_elements else 0) - msg_no_temp_diff)
-            self.last_printed_temporary_elements = temporary_elements
-            self.last_no_pipes = no_pipes
-        print(self.pre(enforce_depth = self.last_printed_depth, enforce_depth_offset = self.last_printed_depth_offset, temporary_elements = self.last_printed_temporary_elements, no_pipes = self.last_no_pipes) + color.bold(self.last_printed_line), end="\r")
+            self.lineroll.start(
+                    msg,
+                    msg_no_temp if msg_no_temp is not None else msg,
+                    self.depth,
+                    self.depth_offset,
+                    max(0, (self.get_temporary_elements_width() if temporary_elements else 0) - msg_no_temp_diff),
+                    temporary_elements,
+                    no_pipes
+                )
+        print(self.pre(enforce_depth = self.lineroll.depth, enforce_depth_offset = self.lineroll.depth_offset, temporary_elements = self.lineroll.temporary_elements, no_pipes = self.lineroll.no_pipes) + color.bold(self.lineroll.msg), end="\r")
 
     def reload_preview(self):
-        if self.print_on_the_fly and self.fancy_printing and self.last_printed_line is not None:
+        if self.print_on_the_fly and self.fancy_printing and self.lineroll.rolling:
             self.preview_print(update_preview = False)
 
     # ----------------------------- Write method ------------------------------
