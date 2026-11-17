@@ -376,7 +376,7 @@ class Journal():
             self.last_printed_temporary_elements = None
             self.last_no_pipes = None
 
-    def preview_print(self, msg, update_preview = True, temporary_elements = True, msg_no_temp = None, msg_no_temp_diff = 0, no_pipes = False):
+    def preview_print(self, msg = None, update_preview = True, temporary_elements = True, msg_no_temp = None, msg_no_temp_diff = 0, no_pipes = False):
         # If fancy printing is enabled, we always pre-print the last line in bold
         if update_preview:
             self.last_printed_line = msg
@@ -386,11 +386,11 @@ class Journal():
             self.last_printed_padding = max(0, (self.get_temporary_elements_width() if temporary_elements else 0) - msg_no_temp_diff)
             self.last_printed_temporary_elements = temporary_elements
             self.last_no_pipes = no_pipes
-        print(self.pre(enforce_depth = self.last_printed_depth, enforce_depth_offset = self.last_printed_depth_offset, temporary_elements = temporary_elements, no_pipes = self.last_no_pipes) + color.bold(msg), end="\r")
+        print(self.pre(enforce_depth = self.last_printed_depth, enforce_depth_offset = self.last_printed_depth_offset, temporary_elements = self.last_printed_temporary_elements, no_pipes = self.last_no_pipes) + color.bold(self.last_printed_line), end="\r")
 
     def reload_preview(self):
         if self.print_on_the_fly and self.fancy_printing and self.last_printed_line is not None:
-            self.preview_print(self.last_printed_line, update_preview = False, temporary_elements = self.last_printed_temporary_elements)
+            self.preview_print(update_preview = False)
 
     # ----------------------------- Write method ------------------------------
 
