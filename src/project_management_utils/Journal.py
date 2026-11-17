@@ -1274,11 +1274,13 @@ class Journal():
             ans = input(question_print).strip().lower()"""
 
         if ans in Journal.answer_strings["yes"]:
-            self.write(question + " (Answered 'yes')", prevent_printing_on_the_fly = True, highlight_roll_start = True)
-            return(True)
+            self.write(question + " (Answered 'yes')", prevent_printing_on_the_fly = True)
+            self.write("Anwered '" + color.fg_highlight('green', 'yes', False) + "'.", plain_msg = "Anwered 'yes'.", record_to_journal = False, highlight_roll_start = True)
+            return True
         if ans in Journal.answer_strings["no"]:
-            self.write(question + " (Answered 'no')", prevent_printing_on_the_fly = True, highlight_roll_start = True)
-            return(False)
+            self.write(question + " (Answered 'no')", prevent_printing_on_the_fly = True)
+            self.write("Anwered '" + color.fg_highlight('red', 'no', False) + "'.", plain_msg = "Anwered 'no'.", record_to_journal = False, highlight_roll_start = True)
+            return False
 
     # -------------- Agent tag management -------------------
 
