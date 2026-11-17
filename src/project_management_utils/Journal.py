@@ -29,8 +29,8 @@ class Lineroll():
         self.depth = depth
         self.depth_offset = depth_offset
         self.padding = padding
-        self.temporary_elements = None
-        self.no_pipes = None
+        self.temporary_elements = temporary_elements
+        self.no_pipes = no_pipes
         # TODO temp_only for empty msgs only printed for temp
 
         self.rolling = True
