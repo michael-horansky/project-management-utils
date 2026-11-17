@@ -177,12 +177,7 @@ class Journal():
 
         # We start the highlight roll if necessary
         opening_fancy, opening_plain = self.get_header('Process started')
-        self.journal_text += opening_plain + "\n"
-        if self.print_on_the_fly:
-            if self.fancy_printing:
-                self.preview_print(opening_fancy)
-            else:
-                print(self.pre(allow_fancy = False) + opening_plain)
+        self.write_forced_line(opening_fancy, opening_plain, highlight_roll_start = True)
 
     # --------------- Post-initialisation parameter assignment ----------------
 
@@ -392,10 +387,6 @@ class Journal():
             self.last_printed_line_no_temp = msg_no_temp if msg_no_temp is not None else msg
             self.last_printed_depth = self.depth
             self.last_printed_depth_offset = self.depth_offset
-
-            if msg == '':
-                print(f"\n\n temp el width = {self.get_temporary_elements_width()}, temp el = {temporary_elements}, msg_no_temp_diff = {msg_no_temp_diff}\n\n")
-
             self.last_printed_padding = max(0, (self.get_temporary_elements_width() if temporary_elements else 0) - msg_no_temp_diff)
             self.last_printed_temporary_elements = temporary_elements
             self.last_no_pipes = no_pipes
@@ -407,7 +398,18 @@ class Journal():
 
     # ----------------------------- Write method ------------------------------
 
-    def write_forced_line(self, msg, plain_msg, msg_no_temp = None, msg_no_temp_diff = 0, prevent_printing_on_the_fly = False, record_to_journal = True, temporary_elements = True, no_pipes = False):
+    def write_forced_line(
+            self,
+            msg,
+            plain_msg,
+            msg_no_temp = None,
+            msg_no_temp_diff = 0,
+            prevent_printing_on_the_fly = False,
+            record_to_journal = True,
+            temporary_elements = True,
+            no_pipes = False,
+            highlight_roll_start = False
+        ):
         # An internal method only.
         # Prints a line which is already safe to print
         if record_to_journal:
@@ -415,18 +417,32 @@ class Journal():
         if self.print_on_the_fly and not prevent_printing_on_the_fly:
             if self.fancy_printing:
                 # We firstly print the last submitted line, and then the preprint of the current line
-                self.commit_last_line()
+                if not highlight_roll_start:
+                    self.commit_last_line()
                 self.preview_print(msg, temporary_elements = temporary_elements, msg_no_temp = msg_no_temp, msg_no_temp_diff = msg_no_temp_diff, no_pipes = no_pipes)
             else:
                 # crude printing only
                 print(self.pre(allow_fancy = False, no_pipes = no_pipes) + plain_msg)
 
-    def write_line(self, msg, v = -1, prevent_printing_on_the_fly = False, record_to_journal = True, plain_msg = None, agent = None, temporary_elements = True, is_exit = False):
+    def write_line(
+            self,
+            # user arguments
+            msg,
+            plain_msg = None,
+            v = -1,
+            agent = None,
+            # internal arguments
+            prevent_printing_on_the_fly = False,
+            record_to_journal = True,
+            temporary_elements = True,
+            is_exit = False,
+            highlight_roll_start = False
+        ):
         # Internal method to display message for which both fancy text and
         # plaintext are known.
         # This method simply prints one line.
 
-        if self.verbosity < max(v, self.get_stack_v()):
+        if self.verbosity < max(v, self.get_stack_v()) and not highlight_roll_start:
             return
 
         w = self.max_allowed_w()
@@ -471,20 +487,25 @@ class Journal():
             msg_no_temp = fancy_exit_pre + msg_no_temp
             plain_msg = plain_exit_pre + plain_msg
 
-        self.write_forced_line(msg, plain_msg, msg_no_temp = msg_no_temp, msg_no_temp_diff = msg_no_temp_diff, prevent_printing_on_the_fly = prevent_printing_on_the_fly, record_to_journal = record_to_journal, temporary_elements = temporary_elements)
-        """if record_to_journal:
-            self.journal_text += self.pre(allow_fancy = False) + plain_msg + "\n"
-        if self.print_on_the_fly and not prevent_printing_on_the_fly:
-            if self.fancy_printing:
-                # We firstly print the last submitted line, and then the preprint of the current line
-                self.commit_last_line()
-                self.preview_print(msg, temporary_elements = temporary_elements, msg_no_temp = msg_no_temp, msg_no_temp_diff = msg_no_temp_diff)
-            else:
-                # crude printing only
-                print(self.pre(allow_fancy = False) + plain_msg)"""
+        self.write_forced_line(msg, plain_msg, msg_no_temp = msg_no_temp, msg_no_temp_diff = msg_no_temp_diff, prevent_printing_on_the_fly = prevent_printing_on_the_fly, record_to_journal = record_to_journal, temporary_elements = temporary_elements, highlight_roll_start = highlight_roll_start)
 
-
-    def write(self, msg, v = -1, w = None, n = 6, min_w = None, prevent_printing_on_the_fly = False, record_to_journal = True, plain_msg = None, agent = None, temporary_elements = True, is_exit = False):
+    def write(
+            self,
+            # user arguments
+            msg,
+            v = -1,
+            w = None,
+            n = 6,
+            min_w = None,
+            plain_msg = None,
+            # internal arguments
+            agent = None,
+            prevent_printing_on_the_fly = False,
+            record_to_journal = True,
+            temporary_elements = True,
+            is_exit = False,
+            highlight_roll_start = False
+        ):
         # Writes a message inside current routine at current depth
         # Arguments:
         #   -msg: Text to be printed. Crudely converted to string if needed.
@@ -514,7 +535,7 @@ class Journal():
             # msg is plaintext
             plain_msg = msg
 
-        if self.verbosity < max(v, self.get_stack_v()):
+        if self.verbosity < max(v, self.get_stack_v()) and not highlight_roll_start:
             return
 
         # Normalise arguments
@@ -543,28 +564,7 @@ class Journal():
             temp_w = 0
         if w < min_w + temp_w:
             # No wrapping, just a trim
-            self.write_line(msg, v = v, prevent_printing_on_the_fly = prevent_printing_on_the_fly, record_to_journal = record_to_journal, plain_msg = plain_msg, agent = agent, temporary_elements = temporary_elements, is_exit = is_exit)
-            """
-            if len(plain_msg) <= w:
-                final_fancy_msg = fancy_exit_pre + msg
-                final_plain_msg = plain_exit_pre + plain_msg
-
-            self.write_forced_line(
-                fancy_exit_pre + plain_msg[:w - temp_w],
-                plain_exit_pre + plain_msg[:w],
-                msg_no_temp = fancy_exit_pre + plain_msg[:w - temp_w],
-                msg_no_temp_diff = temp_w,
-                prevent_printing_on_the_fly = prevent_printing_on_the_fly, temporary_elements = temporary_elements)"""
-            """
-            self.journal_text += self.pre(allow_fancy = False) + plain_exit_pre + plain_msg[:w] + "\n"
-            if self.print_on_the_fly and not prevent_printing_on_the_fly:
-                if self.fancy_printing:
-                    # We firstly print the last submitted line
-                    self.commit_last_line()
-                    self.preview_print(fancy_exit_pre + plain_msg[:w - temp_w], temporary_elements = temporary_elements)
-                else:
-                    # crude printing only
-                    print(self.pre(allow_fancy = False) + plain_exit_pre + plain_msg[:w])"""
+            self.write_line(msg, v = v, prevent_printing_on_the_fly = prevent_printing_on_the_fly, record_to_journal = record_to_journal, plain_msg = plain_msg, agent = agent, temporary_elements = temporary_elements, is_exit = is_exit, highlight_roll_start = highlight_roll_start)
             return
 
         # We firstly append the plain agent tag placeholder to msg in order to
@@ -576,7 +576,7 @@ class Journal():
 
         # If we can fit the entire message on one line, we print the fancy one. Otherwise, we wrap and deal with the plain one.
         if len(plain_msg) <= w - temp_w - len(agent_plain_pre):
-            self.write_line(msg, v, prevent_printing_on_the_fly = prevent_printing_on_the_fly, plain_msg = plain_msg, agent = agent, temporary_elements = temporary_elements, is_exit = is_exit)
+            self.write_line(msg, v, prevent_printing_on_the_fly = prevent_printing_on_the_fly, record_to_journal = record_to_journal, plain_msg = plain_msg, agent = agent, temporary_elements = temporary_elements, is_exit = is_exit, highlight_roll_start = highlight_roll_start)
             return
 
         # We need to plaintextify msg
@@ -600,7 +600,8 @@ class Journal():
         if self.print_on_the_fly and not prevent_printing_on_the_fly:
             if self.fancy_printing:
                 # We firstly print the last submitted line
-                self.commit_last_line()
+                if not highlight_roll_start:
+                    self.commit_last_line()
 
                 for i in range(len(sequenced_msg) - 1):
                     print(self.pre(temporary_elements = False) + (fancy_exit_pre if i == 0 else exit_offset) + sequenced_msg[i])
@@ -1275,10 +1276,10 @@ class Journal():
             ans = input(question_print).strip().lower()"""
 
         if ans in Journal.answer_strings["yes"]:
-            self.write_line(question + " (Answered 'yes')", prevent_printing_on_the_fly = True)
+            self.write(question + " (Answered 'yes')", prevent_printing_on_the_fly = True, highlight_roll_start = True)
             return(True)
         if ans in Journal.answer_strings["no"]:
-            self.write(question + " (Answered 'no')", prevent_printing_on_the_fly = True)
+            self.write(question + " (Answered 'no')", prevent_printing_on_the_fly = True, highlight_roll_start = True)
             return(False)
 
     # -------------- Agent tag management -------------------
