@@ -392,6 +392,10 @@ class Journal():
             self.last_printed_line_no_temp = msg_no_temp if msg_no_temp is not None else msg
             self.last_printed_depth = self.depth
             self.last_printed_depth_offset = self.depth_offset
+
+            if msg == '':
+                print(f"\n\n temp el width = {self.get_temporary_elements_width()}, temp el = {temporary_elements}, msg_no_temp_diff = {msg_no_temp_diff}\n\n")
+
             self.last_printed_padding = max(0, (self.get_temporary_elements_width() if temporary_elements else 0) - msg_no_temp_diff)
             self.last_printed_temporary_elements = temporary_elements
             self.last_no_pipes = no_pipes
