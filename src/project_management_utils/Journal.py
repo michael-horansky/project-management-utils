@@ -609,12 +609,12 @@ class Journal():
             # We can put temp and msg on the same line
             self.write_line(msg, v, prevent_printing_on_the_fly = prevent_printing_on_the_fly, record_to_journal = record_to_journal, plain_msg = plain_msg, agent = agent, temporary_elements = temporary_elements, is_exit = is_exit, highlight_roll_start = highlight_roll_start)
             return
-        elif len(plain_msg) <= w - len(agent_plain_pre):
+        """elif len(plain_msg) <= w - len(agent_plain_pre):
             # We can put msg on one line and temp on the next one
             self.write_line(msg, v, prevent_printing_on_the_fly = prevent_printing_on_the_fly, record_to_journal = record_to_journal, plain_msg = plain_msg, agent = agent, temporary_elements = False, is_exit = is_exit, highlight_roll_start = highlight_roll_start)
             if temporary_elements:
                 self.preview_print('', temporary_elements = True)
-            return
+            return"""
 
         # We need to plaintextify msg
         sequenced_msg = PMU_funcs.wrap_text(agent_plain_pre + plain_msg, w, min_w, hyphenate = True, n = n)
