@@ -251,6 +251,7 @@ class Journal():
         self.write_forced_line(fancy_msg, plain_msg, no_pipes = True)
 
     def pipe_ascent(self, i, n_steps, is_base):
+        # Width is reduced by 1 to better visually connect the two diagonal pipes
         plain_msg = '\\' + '-' * (self.connecting_pipe_w(n_steps, is_base) - 1) + '\\'
         fancy_msg = self.gradual_highlight(i, plain_msg)
 
@@ -365,7 +366,7 @@ class Journal():
             msg = self.depth_offset_pre(self.last_printed_depth_offset)
             if not self.last_no_pipes:
                 msg += self.pipe_stack(self.last_printed_depth, self.last_printed_depth_offset)
-            msg += self.last_printed_line_no_temp + ' ' * self.last_printed_padding
+            msg += self.last_printed_line_no_temp + ' ' * self.last_printed_padding + f" X {self.last_printed_padding}"
             print(msg)
             self.last_printed_line = None
             self.last_printed_line_no_temp = None

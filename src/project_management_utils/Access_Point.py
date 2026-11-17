@@ -57,7 +57,7 @@ class Access_Point():
 
         res = {}
 
-        Access_Point.AP_Correspondent.enter("Processing command parameters...")
+        Access_Point.AP_Correspondent.enter("Processing command parameters")
 
         # We split the positional and keyword arguments
 
