@@ -227,9 +227,12 @@ class Journal():
     def dump(self, erase_journal_text = True):
         # dumps journal into string, resetting it to empty otherwise disabled
         res = self.journal_text
+
+        plain_dump_header = PMU_funcs.st(' Journal recorded ', min(self.max_row_width, Journal.header_width), '-')
+
         if erase_journal_text:
             self.journal_text = ""
-        return(res)
+        return(res + plain_dump_header)
 
     # ------------------------ Active width management ------------------------
 
