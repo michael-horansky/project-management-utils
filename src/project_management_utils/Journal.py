@@ -426,12 +426,10 @@ class Journal():
 
     def write_line(
             self,
-            # user arguments
             msg,
-            plain_msg = None,
             v = -1,
+            plain_msg = None,
             agent = None,
-            # internal arguments
             prevent_printing_on_the_fly = False,
             record_to_journal = True,
             temporary_elements = True,
