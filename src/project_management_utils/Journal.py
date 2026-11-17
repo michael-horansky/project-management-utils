@@ -23,7 +23,7 @@ class Lineroll():
 
         self.rolling = False
 
-    def start(self, msg, msg_no_temp, depth, depth_offset, padding, temporary_elements, no_pipes, temp_only = False):
+    def start(self, msg, msg_no_temp, depth, depth_offset, padding, temporary_elements, no_pipes):
         self.msg = msg
         self.msg_no_temp = msg_no_temp
         self.depth = depth
@@ -31,7 +31,9 @@ class Lineroll():
         self.padding = padding
         self.temporary_elements = temporary_elements
         self.no_pipes = no_pipes
-        # TODO temp_only for empty msgs only printed for temp
+
+        # If msg is empty, its purpose is assumed to be to simply display the temporary elements
+        self.temp_only = msg == ''
 
         self.rolling = True
 
@@ -65,6 +67,12 @@ class Journal():
     depth_offset_ellipsis = "..."
 
     header_width = 80
+
+    @staticmethod
+    def pre_width(depth, depth_offset, no_pipes = False):
+        if no_pipes:
+            return (len(Journal.depth_offset_ellipsis) if depth_offset > 0 else 0)
+        return (depth - depth_offset) * len(Journal.pipe) + (len(Journal.depth_offset_ellipsis) if depth_offset > 0 else 0)
 
     # --------------------------- Class properties ----------------------------
 
@@ -258,9 +266,9 @@ class Journal():
 
     def max_allowed_w(self, w = None):
         if w is None:
-            return max(0, self.max_row_width - (self.depth - self.depth_offset) * len(Journal.pipe) - (len(Journal.depth_offset_ellipsis) if self.depth_offset > 0 else 0))
+            return max(0, self.max_row_width - Journal.pre_width(self.depth, self.depth_offset))
         else:
-            return max(0, min(self.max_row_width - (self.depth - self.depth_offset) * len(Journal.pipe) - (len(Journal.depth_offset_ellipsis) if self.depth_offset > 0 else 0), w))
+            return max(0, min(self.max_row_width - Journal.pre_width(self.depth, self.depth_offset), w))
 
     def connecting_pipe_w(self, n_steps, is_base):
         w = n_steps * len(Journal.pipe) - 1
@@ -388,11 +396,15 @@ class Journal():
 
     def commit_last_line(self):
         if self.lineroll.rolling:
-            msg = self.depth_offset_pre(self.lineroll.depth_offset)
-            if not self.lineroll.no_pipes:
-                msg += self.pipe_stack(self.lineroll.depth, self.lineroll.depth_offset)
-            msg += self.lineroll.msg_no_temp + ' ' * self.lineroll.padding
-            print(msg)
+            if self.lineroll.temp_only:
+                # We "erase" the entire temp only line with padding
+                print(' ' * (Journal.pre_width(self.lineroll.depth, self.lineroll.depth_offset, self.lineroll.no_pipes) + self.lineroll.padding), end = "\r")
+            else:
+                msg = self.depth_offset_pre(self.lineroll.depth_offset)
+                if not self.lineroll.no_pipes:
+                    msg += self.pipe_stack(self.lineroll.depth, self.lineroll.depth_offset)
+                msg += self.lineroll.msg_no_temp + ' ' * self.lineroll.padding
+                print(msg)
             self.lineroll.stop()
 
     def preview_print(self, msg = None, update_preview = True, temporary_elements = True, msg_no_temp = None, msg_no_temp_diff = 0, no_pipes = False):
@@ -407,7 +419,7 @@ class Journal():
                     temporary_elements,
                     no_pipes
                 )
-        print(self.pre(enforce_depth = self.lineroll.depth, enforce_depth_offset = self.lineroll.depth_offset, temporary_elements = self.lineroll.temporary_elements, no_pipes = self.lineroll.no_pipes) + color.bold(self.lineroll.msg), end="\r")
+        print(self.pre(enforce_depth = self.lineroll.depth, enforce_depth_offset = self.lineroll.depth_offset, temporary_elements = self.lineroll.temporary_elements, no_pipes = self.lineroll.no_pipes) + color.bold(self.lineroll.msg), end = "\r")
 
     def reload_preview(self):
         if self.print_on_the_fly and self.fancy_printing and self.lineroll.rolling:
@@ -573,11 +585,14 @@ class Journal():
         if min_w is None:
             # We must be allowed to print an asterism or the agent tag unbroken
             min_w = max(len(Journal.asterism), len(agent_plain_pre))
+
         # We must reserve space for all temporary elements
         if w < temp_w:
+            # temporary elements would not fit even on their own.
             temporary_elements = False
             temp_w = 0
-        if w < min_w + temp_w:
+
+        if w < min_w:
             # No wrapping, just a trim
             self.write_line(msg, v = v, prevent_printing_on_the_fly = prevent_printing_on_the_fly, record_to_journal = record_to_journal, plain_msg = plain_msg, agent = agent, temporary_elements = temporary_elements, is_exit = is_exit, highlight_roll_start = highlight_roll_start)
             return
