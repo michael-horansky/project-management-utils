@@ -1091,7 +1091,7 @@ class Journal():
 
     def print_header(self, msg, c = ('green', True), v = -1, agent = None):
         fancy_header, plain_header = self.get_header(msg, c = c)
-        self.write_line(fancy_endline, v = v, agent = agent, plain_msg = plain_endline, temporary_elements = False)
+        self.write_line(fancy_header, v = v, agent = agent, plain_msg = plain_header, temporary_elements = False)
 
 
     def print_dinkus(self, w = None, v = -1, agent = None):
