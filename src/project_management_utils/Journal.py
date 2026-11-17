@@ -613,7 +613,7 @@ class Journal():
             # We can put msg on one line and temp on the next one
             self.write_forced_line(fancy_exit_pre + agent_pre + msg, plain_exit_pre + agent_plain_pre + plain_msg, prevent_printing_on_the_fly = prevent_printing_on_the_fly, record_to_journal = record_to_journal, temporary_elements = False, highlight_roll_start = highlight_roll_start)
             if temporary_elements:
-                self.write_forced_line('', prevent_printing_on_the_fly = prevent_printing_on_the_fly, record_to_journal = False, temporary_elements = True)
+                self.write_forced_line('', '', prevent_printing_on_the_fly = prevent_printing_on_the_fly, record_to_journal = False, temporary_elements = True)
             return
 
         # We need to plaintextify msg
