@@ -606,7 +606,14 @@ class Journal():
 
         # If we can fit the entire message on one line, we print the fancy one. Otherwise, we wrap and deal with the plain one.
         if len(plain_msg) <= w - temp_w - len(agent_plain_pre):
+            # We can put temp and msg on the same line
             self.write_line(msg, v, prevent_printing_on_the_fly = prevent_printing_on_the_fly, record_to_journal = record_to_journal, plain_msg = plain_msg, agent = agent, temporary_elements = temporary_elements, is_exit = is_exit, highlight_roll_start = highlight_roll_start)
+            return
+        elif len(plain_msg) <= w - len(agent_plain_pre):
+            # We can put msg on one line and temp on the next one
+            self.write_line(msg, v, prevent_printing_on_the_fly = prevent_printing_on_the_fly, record_to_journal = record_to_journal, plain_msg = plain_msg, agent = agent, temporary_elements = False, is_exit = is_exit, highlight_roll_start = highlight_roll_start)
+            if temporary_elements:
+                self.preview_print('', temporary_elements = True)
             return
 
         # We need to plaintextify msg
