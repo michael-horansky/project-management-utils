@@ -543,13 +543,18 @@ class Journal():
             temp_w = 0
         if w < min_w + temp_w:
             # No wrapping, just a trim
+            self.write_line(msg, v = v, prevent_printing_on_the_fly = prevent_printing_on_the_fly, record_to_journal = record_to_journal, plain_msg = plain_msg, agent = agent, temporary_elements = temporary_elements, is_exit = is_exit)
+            """
+            if len(plain_msg) <= w:
+                final_fancy_msg = fancy_exit_pre + msg
+                final_plain_msg = plain_exit_pre + plain_msg
 
             self.write_forced_line(
                 fancy_exit_pre + plain_msg[:w - temp_w],
                 plain_exit_pre + plain_msg[:w],
                 msg_no_temp = fancy_exit_pre + plain_msg[:w - temp_w],
                 msg_no_temp_diff = temp_w,
-                prevent_printing_on_the_fly = prevent_printing_on_the_fly, temporary_elements = temporary_elements)
+                prevent_printing_on_the_fly = prevent_printing_on_the_fly, temporary_elements = temporary_elements)"""
             """
             self.journal_text += self.pre(allow_fancy = False) + plain_exit_pre + plain_msg[:w] + "\n"
             if self.print_on_the_fly and not prevent_printing_on_the_fly:
