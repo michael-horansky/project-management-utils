@@ -175,7 +175,7 @@ class Journal():
 
     # -------------------- Constructor, descriptor, output --------------------
 
-    def __init__(self, verbosity = 5, print_on_the_fly = True, fancy_printing = True, max_row_width = 200, yes = None, wrap_stack_messages = False):
+    def __init__(self, verbosity = 5, print_on_the_fly = True, fancy_printing = True, max_row_width = 200, yes = None, wrap_stack_messages = True):
 
         # Verbosity key:
         #   0/None: Important, always prints (user methods)
@@ -620,7 +620,7 @@ class Journal():
         # We now reserve enough space in the last line for the temporary
         # elements. If there isn't enough space, we add an empty line to the
         # end, which will simply display the temporary elements.
-        if len(sequenced_msg[-1]) > w - temp_w:
+        if len(sequenced_msg[-1]) > w - temp_w and self.fancy_printing:
             sequenced_msg.append("")
 
         # We now make the agent pre fancy (if it fits)
@@ -665,12 +665,12 @@ class Journal():
     def warning(self, msg, v = -1, agent = None):
         fancy_msg = color.BRIGHT_YELLOW + color.BOLD + "WARNING" + color.END + ": " + str(msg)
         plain_msg = "WARNING: " + str(msg)
-        self.write_line(fancy_msg, v, plain_msg = plain_msg, agent = agent)
+        self.write(fancy_msg, v, plain_msg = plain_msg, agent = agent)
 
     def error(self, msg, v = -1, agent = None, err = ValueError):
         fancy_msg = color.BRIGHT_RED + color.BOLD + "ERROR" + color.END + ": " + color.bg.RED + str(msg) + color.bg.DEFAULT
         plain_msg = "ERROR: " + str(msg)
-        self.write_line(fancy_msg, v, plain_msg = plain_msg, agent = agent)
+        self.write(fancy_msg, v, plain_msg = plain_msg, agent = agent)
         # Unless otherwise specified, we raise an exception of the proper type
         if err is not None:
             raise err(str(msg))
