@@ -484,7 +484,7 @@ class Journal():
                 print(self.pre(allow_fancy = False) + plain_msg)"""
 
 
-    def write(self, msg, v = -1, w = None, n = 6, min_w = None, prevent_printing_on_the_fly = False, plain_msg = None, agent = None, temporary_elements = True, is_exit = False):
+    def write(self, msg, v = -1, w = None, n = 6, min_w = None, prevent_printing_on_the_fly = False, record_to_journal = True, plain_msg = None, agent = None, temporary_elements = True, is_exit = False):
         # Writes a message inside current routine at current depth
         # Arguments:
         #   -msg: Text to be printed. Crudely converted to string if needed.
@@ -583,8 +583,9 @@ class Journal():
         sequenced_msg = PMU_funcs.wrap_text(agent_plain_pre + plain_msg, w, min_w, hyphenate = True, n = n)
 
         # Now we write the message line by line to plaintext journal.
-        for i in range(len(sequenced_msg)):
-            self.journal_text += self.pre(allow_fancy = False) + (plain_exit_pre if i == 0 else exit_offset) + sequenced_msg[i] + "\n"
+        if record_to_journal:
+            for i in range(len(sequenced_msg)):
+                self.journal_text += self.pre(allow_fancy = False) + (plain_exit_pre if i == 0 else exit_offset) + sequenced_msg[i] + "\n"
 
         # We now reserve enough space in the last line for the temporary
         # elements. If there isn't enough space, we add an empty line to the
