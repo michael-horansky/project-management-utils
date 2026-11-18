@@ -722,7 +722,7 @@ class Aggregator():
 
     def set_default_values(self, obj):
         # obj is a dictionary of the form {param : new default value}
-        for param, default in obj.item():
+        for param, default in obj.items():
             self.set_default_value(param, default)
 
     # ---------------------------- view management ----------------------------
