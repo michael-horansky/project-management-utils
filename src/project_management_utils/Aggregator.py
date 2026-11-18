@@ -121,6 +121,8 @@ class Aggregator_View():
 
         Aggregator.Aggregator_Correspondent.print_itemize(output_obj)
 
+        print("\n\n" + str(output_obj) + "\n\n")
+
         Aggregator.Aggregator_Correspondent.exit()
 
 
