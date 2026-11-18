@@ -118,9 +118,9 @@ class Aggregator_View():
                     return res
         output_obj = compressor(aggregation_tree) # standard print_itemize object
 
-        print(f"\n\n{output_obj}\n\n")
+        #print(f"\n\n{output_obj}\n\n")
 
-        #Aggregator.Aggregator_Correspondent.print_itemize(output_obj)
+        Aggregator.Aggregator_Correspondent.print_itemize(output_obj)
 
         Aggregator.Aggregator_Correspondent.exit()
 
