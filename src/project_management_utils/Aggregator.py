@@ -46,11 +46,11 @@ class Aggregator_View():
             redundant_p = [redundant_p]
 
         if len(redundant_p) != len(set(redundant_p)):
-            self.agg.handle_error("Duplicate redundant parameters.")
+            self.agg.log.error("Duplicate redundant parameters.")
 
         unknown = set(redundant_p) - set(self.free_params)
         if unknown:
-            self.agg.handle_error(f"Unknown or unavailable parameters: {', '.join(unknown)}")
+            self.agg.log.error(f"Unknown or unavailable parameters: {', '.join(unknown)}")
 
         aggregation_tags = self.free_params.copy()
 
@@ -125,7 +125,7 @@ class Aggregator_View():
     def filter_by_param(self, p, val):
         # Only applicable to error-free parameters
         if p not in self.free_params:
-            self.agg.handle_error(f"Unknown filter parameter '{p}'.")
+            self.agg.log.error(f"Unknown filter parameter '{p}'.")
         self.free_params.remove(p)
         if val is None:
             # Only uninitialised values pass
@@ -149,17 +149,17 @@ class Aggregator_View():
             redundant_p = [redundant_p]
 
         if p not in self.free_params:
-            self.agg.handle_error(f"Unknown aggregation parameter: '{p}'.")
+            self.agg.log.error(f"Unknown aggregation parameter: '{p}'.")
 
         if p in redundant_p:
-            self.agg.handle_error(f"Cannot average over redundant parameter '{p}' (redundant params: '{str_list_delim.join(redundant_p)}').")
+            self.agg.log.error(f"Cannot average over redundant parameter '{p}' (redundant params: '{str_list_delim.join(redundant_p)}').")
 
         for r_p in redundant_p:
             if r_p not in self.free_params:
-                self.agg.handle_error(f"Unknown redundant parameter: '{r_p}'.")
+                self.agg.log.error(f"Unknown redundant parameter: '{r_p}'.")
 
         if len(redundant_p) != len(set(redundant_p)):
-            self.agg.handle_error("Duplicate redundant parameters.")
+            self.agg.log.error("Duplicate redundant parameters.")
 
         for r_p in redundant_p:
             self.free_params.remove(r_p)
@@ -226,11 +226,11 @@ class Aggregator_View():
     def minimal_satisfying_datapoints_known_threshold(self, p, scoring_p, threshold):
 
         if p == scoring_p:
-            self.agg.handle_error("The aggregation and scoring parameters must be distinct.")
+            self.agg.log.error("The aggregation and scoring parameters must be distinct.")
         if p not in self.free_params:
-            self.agg.handle_error(f"Unknown aggregation parameter: '{p}'.")
+            self.agg.log.error(f"Unknown aggregation parameter: '{p}'.")
         if scoring_p not in self.free_params:
-            self.agg.handle_error(f"Unknown redundant parameter: '{scoring_p}'.")
+            self.agg.log.error(f"Unknown redundant parameter: '{scoring_p}'.")
         self.free_params.remove(scoring_p)
 
         aggregation_tags = self.free_params.copy()
@@ -314,13 +314,13 @@ class Aggregator_View():
             return
 
         if p == scoring_p:
-            self.agg.handle_error("The aggregation and scoring parameters must be distinct.")
+            self.agg.log.error("The aggregation and scoring parameters must be distinct.")
 
         if p not in self.free_params:
-            self.agg.handle_error(f"Unknown aggregation parameter: '{p}'.")
+            self.agg.log.error(f"Unknown aggregation parameter: '{p}'.")
 
         if scoring_p not in self.free_params:
-            self.agg.handle_error(f"Unknown redundant parameter: '{scoring_p}'.")
+            self.agg.log.error(f"Unknown redundant parameter: '{scoring_p}'.")
         self.free_params.remove(scoring_p)
 
         aggregation_tags = self.free_params.copy()
@@ -398,12 +398,12 @@ class Aggregator_View():
     def apply_transformation(self, new_p):
         # Transforms old parameters into new parameter. If this is a reduction (projection), we automatically average the new parameter.
         if new_p not in self.agg.transformations.keys():
-            self.agg.handle_error(f"Unknown transformation: '{new_p}'. Available transformations: '{str_list_delim.join(list(self.agg.transformations.keys()))}'.")
+            self.agg.log.error(f"Unknown transformation: '{new_p}'. Available transformations: '{str_list_delim.join(list(self.agg.transformations.keys()))}'.")
         if new_p in self.free_params:
-            self.agg.handle_error(f"Transformation '{new_p}' already applied in this view.")
+            self.agg.log.error(f"Transformation '{new_p}' already applied in this view.")
         for rp in self.agg.transformations[new_p]["p"]:
             if rp not in self.free_params:
-                self.agg.handle_error(f"Transforming parameter '{rp}' not present in the dataset.")
+                self.agg.log.error(f"Transforming parameter '{rp}' not present in the dataset.")
         for dp in self.data:
             if self.agg.transformations[new_p]["error_sensitive"]:
                 cur_args = []
@@ -448,7 +448,7 @@ class Aggregator_View():
         # with matching order between separate members of p.
 
         if len(p) != len(set(p)):
-            self.agg.handle_error("Duplicate parameters requested.")
+            self.agg.log.error("Duplicate parameters requested.")
 
         output = {}
         if not isinstance(p, list):
@@ -502,29 +502,73 @@ class Aggregator():
         return res
 
 
-    def __init__(self):
+    def __init__(self, init_obj = None):
 
-        # Each parameter corresponds to a dimension in the data vector space.
+        if init_obj is None:
+            # New Aggregator from scratch
 
-        self.parameters = {} # {param : {"label" : ..., "default" : ...}}
+            # Each parameter corresponds to a dimension in the data vector space.
+            self.parameters = {} # {param : {"label" : ..., "default" : ...}}
 
-        # Data is stored as a 1D database of rows, where each row assigns a value to each parameter (column).
+            # Data is stored as a 1D database of rows, where each row assigns a value to each parameter (column).
+            self.data = []
 
-        self.data = []
+            # Transformations are stored functions to derive new parameters from old ones
+            self.transformations = {} # "new parameter" : {"p" : old parameters, "f" : transforming function, ...}
 
-        # Transformations are stored functions to derive new parameters from old ones
+            # Unified human-readable labels
+            self.label = {}
 
-        self.transformations = {} # "new parameter" : {"p" : old parameters, "f" : transforming function, ...}
+            # Correspondence with Journal
+            self.log = Aggregator.Aggregator_Correspondent
+            self.log.write("New Aggregator created.")
+        elif isinstance(init_obj, Aggregator):
+            # We copy an Aggregator's parameter and transformation list,
+            # but not its data
+            # (This is "creation from template")
 
-        # Unified human-readable labels
-        self.label = {}
+            self.parameters = init_obj.parameters.copy()
+            self.data = []
+            self.transformations = {}
+            for trans, t in init_obj.transformations.items():
+                self.transformations[trans] = {
+                        'p' : t['p'].copy(),
+                        'f' : t['f'],
+                        'label' : t['label'],
+                        'error_sensitive' : t['error_sensitive']
+                    }
+            self.label = init_obj.label.copy()
+            self.log = Aggregator.Aggregator_Correspondent
 
-        # Correspondence with Journal
-        self.log = Aggregator.Aggregator_Correspondent
+            self.log.enter("New Aggregator created from template.")
+            self.print_description()
+            self.log.exit()
 
-    def handle_error(self, msg, err = ValueError):
-        self.log.error(msg)
-        raise err(msg)
+
+    def print_description(self):
+        # Prints parameters etc... but not data
+        param_table_cells = []
+        param_table_cols = ['label', 'default', 'derived properties']
+        param_table_rows = []
+
+        for param, p in self.parameters.items():
+            param_table_rows.append(param)
+            der_p = []
+            for trans, t in init_obj.transformations.items():
+                if param in t['p']:
+                    der_p.append(trans)
+            param_table_cells.append([p['label'], p['default'], ', '.join(der_p)])
+
+        trans_table_cells = []
+        trans_table_cols = ['label', 'parameters', 'error sensitive?']
+        trans_table_rows = []
+
+        for trans, t in init_obj.transformations.items():
+            trans_table_rows.append(trans)
+            trans_table_cells.append([t['label'], ', '.join(t['p']), t['error_sensitive']])
+
+        self.log.print_table("Parameters", param_table_cols, param_table_rows, param_table_cells, [1], align = 'c')
+        self.log.print_table("Derived properties", trans_table_cols, trans_table_rows, trans_table_cells, align = 'c')
 
     # ------------------------ data correction methods ------------------------
 
@@ -547,13 +591,13 @@ class Aggregator():
     def register_label(self, name, label):
         self.label[name] = label
 
-    def register_parameter(self, name, label = None, default = None):
+    def register_parameter(self, name, label = None, default = None, error_on_duplicate = True):
         if name in Aggregator.reserved_parameters:
-            self.handle_error(f"Parameter name '{name}' is reserved.")
+            self.log.error(f"Parameter name '{name}' is reserved.")
 
         if name in self.parameters:
             if error_on_duplicate:
-                self.handle_error(f"Attempting registration of duplicate parameter '{name}'.")
+                self.log.error(f"Attempting registration of duplicate parameter '{name}'.")
             else:
                 self.log.warning(f"Duplicate parameter '{name}' encountered. Skipping the reassignment.", 10)
                 return
@@ -567,7 +611,7 @@ class Aggregator():
     def register_parameters(self, p, error_on_duplicate = True):
         # p is in the form {param : {"label" : ..., "default" : ...}}
         for p_name, p_props in p.items():
-            self.register_parameter(p_name, p_props.get("label", None), p_props.get("default", None))
+            self.register_parameter(p_name, p_props.get("label", None), p_props.get("default", None), error_on_duplicate = error_on_duplicate)
 
     def register_transformation(self, new_p, old_ps, f_trans, label = None, error_sensitive = False, error_on_duplicate = True):
         # new_p is name of new parameter
@@ -578,14 +622,14 @@ class Aggregator():
         # Otherwise, they are simply numerical values.
         if new_p in self.transformations.keys():
             if error_on_duplicate:
-                self.handle_error(f"Derived parameter '{new_p}' already registered with a transformation.")
+                self.log.error(f"Derived parameter '{new_p}' already registered with a transformation.")
             else:
                 self.log.warning(f"Duplicate derived parameter '{new_p}' encountered. Skipping the reassignment.", 10)
                 return
         if new_p in self.parameters.keys():
-            self.handle_error(f"Derived parameter '{new_p}' already present in registered parameters.")
+            self.log.error(f"Derived parameter '{new_p}' already present in registered parameters.")
         if new_p in Aggregator.reserved_parameters:
-            self.handle_error(f"Derived parameter '{new_p}' is already a reserved parameter.")
+            self.log.error(f"Derived parameter '{new_p}' is already a reserved parameter.")
 
         if isinstance(old_ps, str):
             old_ps = [old_ps]
@@ -593,10 +637,10 @@ class Aggregator():
             old_ps = list(old_ps)
 
         if not old_ps:
-            self.handle_error("Transformation requires at least one argument.")
+            self.log.error("Transformation requires at least one argument.")
 
         if len(old_ps) != len(set(old_ps)):
-            self.handle_error("Duplicate transformation arguments.")
+            self.log.error("Duplicate transformation arguments.")
 
         if label is None:
             label = new_p
@@ -635,11 +679,11 @@ class Aggregator():
                 std_dp[param] = None
             elif isinstance(val, dict):
                 if "v" not in val:
-                    self.handle_error("Dictionary values forbidden; please flatten them into sequenced parameters.")
+                    self.log.error("Dictionary values forbidden; please flatten them into sequenced parameters.")
                 std_dp[param] = (val["v"], val.get("e", 0))
             elif isinstance(val, tuple):
                 if len(val) != 2:
-                    self.handle_error("Tuple values forbidden; please flatten them into sequenced parameters.")
+                    self.log.error("Tuple values forbidden; please flatten them into sequenced parameters.")
                 std_dp[param] = val
             else:
                 std_dp[param] = (val, 0)
