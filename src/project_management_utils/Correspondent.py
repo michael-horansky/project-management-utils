@@ -36,10 +36,11 @@ class Correspondent:
         if journal is not None:
             journal.write(msg, v, w = w, n = n, min_w = min_w, agent = self.agent_ID)
 
-    def enter(self, msg, v = None):
+    def enter(self, msg, v = None, semaphored = False, **kwargs):
+        # Returns Semaphor Event ID if created
         v = self.reassure_verbosity(v)
         if journal is not None:
-            journal.enter(msg, v, agent = self.agent_ID)
+            return journal.enter(msg, v, semaphored = semaphored, agent = self.agent_ID, **kwargs)
 
     def exit(self):
         if journal is not None:
