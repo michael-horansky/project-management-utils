@@ -711,6 +711,20 @@ class Aggregator():
         for new_dp in new_data:
             self.add_dp(new_dp)
 
+    # ----------------------- default value management ------------------------
+    # Default values are very helpful: we can create an aggregator from
+    # template and then set its default values to its manager's properties.
+
+    def set_default_value(self, param, default):
+        if param not in self.parameters:
+            self.log.error(f"Unknown parameter: {param}. Failed to set default value.")
+        self.parameters[param]["default"] = default
+
+    def set_default_values(self, obj):
+        # obj is a dictionary of the form {param : new default value}
+        for param, default in obj.item():
+            self.set_default_value(param, default)
+
     # ---------------------------- view management ----------------------------
 
     def create_view(self):
