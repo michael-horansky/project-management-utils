@@ -537,7 +537,9 @@ class Aggregator():
             # but not its data
             # (This is "creation from template")
 
-            self.parameters = init_obj.parameters.copy()
+            self.parameters = {}
+            for param, p in init_obj.parameters.items():
+                self.parameters[param] = p.copy()
             self.data = []
             self.transformations = {}
             for trans, t in init_obj.transformations.items():
@@ -570,7 +572,7 @@ class Aggregator():
         for param, p in self.parameters.items():
             param_table_rows.append(param)
             der_p = []
-            for trans, t in init_obj.transformations.items():
+            for trans, t in self.transformations.items():
                 if param in t['p']:
                     der_p.append(trans)
             param_table_cells.append([p['label'], p['default'], ', '.join(der_p)])
@@ -579,7 +581,7 @@ class Aggregator():
         trans_table_cols = ['label', 'parameters', 'error sensitive?']
         trans_table_rows = []
 
-        for trans, t in init_obj.transformations.items():
+        for trans, t in self.transformations.items():
             trans_table_rows.append(trans)
             trans_table_cells.append([t['label'], ', '.join(t['p']), t['error_sensitive']])
 
