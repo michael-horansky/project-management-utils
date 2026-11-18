@@ -1,3 +1,5 @@
+from numbers import Number
+
 from . import PMU_funcs
 
 from .color import color
@@ -754,6 +756,9 @@ class Journal():
             if isinstance(cur_std_object, str):
                 # leaf
                 commit_msg(itemize_depth, key, cur_std_object)
+            if isinstance(cur_std_object, Number):
+                # numerical leaf
+                commit_msg(itemize_depth, key, str(cur_std_object))
             else:
                 # We print the key on its own
                 if itemize_depth > 0:
