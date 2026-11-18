@@ -686,6 +686,7 @@ class Journal():
         self.write(fancy_msg, v, plain_msg = plain_msg, agent = agent)
         # Unless otherwise specified, we raise an exception of the proper type
         if err is not None:
+            self.commit_last_line()
             raise err(str(msg))
 
     def print_itemize(self, std_object, w = None, n = 6, min_w = None, v = -1, agent = None):
