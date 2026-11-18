@@ -501,6 +501,16 @@ class Aggregator():
 
         return res
 
+    # Static descriptors
+
+    @staticmethod
+    def print_init_options():
+        Aggregator.Aggregator_Correspondent.write("The following types for the initialisation object are recognised:")
+        Aggregator.Aggregator_Correspondent.print_itemize({
+            "None" : "Creates an empty Aggregator.",
+            "Aggregator": "Copies the parameters and derived properties, but not the data (template initialisation)."
+            })
+
 
     def __init__(self, init_obj = None):
 
@@ -543,6 +553,12 @@ class Aggregator():
             self.log.enter("New Aggregator created from template.")
             self.print_description()
             self.log.exit()
+        else:
+            Aggregator.Aggregator_Correspondent.error(f"Unknown type of initialisation object for Aggregator {type(init_obj)}. Allowed types: None, Aggregator.")
+
+    def template(self):
+        # Creates a new Aggregator with the same properties etc
+        return Aggregator(self)
 
 
     def print_description(self):
