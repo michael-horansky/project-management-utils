@@ -757,7 +757,7 @@ class Journal():
             if isinstance(cur_std_object, str):
                 # leaf
                 commit_msg(itemize_depth, key, cur_std_object)
-            if isinstance(cur_std_object, Number):
+            elif isinstance(cur_std_object, Number):
                 # numerical leaf
                 commit_msg(itemize_depth, key, str(cur_std_object))
             else:
