@@ -119,7 +119,7 @@ class Aggregator_View():
         output_obj = compressor(aggregation_tree) # standard print_itemize object
 
 
-        Aggregator.Aggregator_Correspondent.print_itemize(output_obj)
+        #Aggregator.Aggregator_Correspondent.print_itemize(output_obj)
 
         print("\n\n" + str(output_obj) + "\n\n")
 
