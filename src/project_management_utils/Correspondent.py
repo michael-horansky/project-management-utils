@@ -46,6 +46,10 @@ class Correspondent:
         if journal is not None:
             journal.exit()
 
+    def dump(erase_journal_text = True):
+        if journal is not None:
+            return journal.dump(erase_journal_text = erase_journal_text)
+
     # ---------------------- Semaphor management methods ----------------------
 
     def semaphor_update(self, tau, S_ID = None):
