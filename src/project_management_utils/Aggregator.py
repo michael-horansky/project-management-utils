@@ -76,14 +76,14 @@ class Aggregator_View():
                 # uninitialised leaf
                 cur_branch[Aggregator_View._TREE_LEAF] = [{}, dp["TOTAL_WEIGHT"]]
                 for r_p in redundant_p:
-                    cur_branch[Aggregator_View._TREE_LEAF][0][r_p] = [dp[r_p], dp[r_p]]
+                    cur_branch[Aggregator_View._TREE_LEAF][0][r_p] = [dp[r_p][0], dp[r_p][0]]
             else:
                 cur_branch[Aggregator_View._TREE_LEAF][1] += dp["TOTAL_WEIGHT"]
                 for r_p in redundant_p:
-                    if PMU_funcs.less_than_with_none(dp[r_p], cur_branch[Aggregator_View._TREE_LEAF][0][r_p][0]):
-                        cur_branch[Aggregator_View._TREE_LEAF][0][r_p][0] = dp[r_p]
-                    if PMU_funcs.more_than_with_none(dp[r_p], cur_branch[Aggregator_View._TREE_LEAF][0][r_p][1]):
-                        cur_branch[Aggregator_View._TREE_LEAF][0][r_p][1] = dp[r_p]
+                    if PMU_funcs.less_than_with_none(dp[r_p][0], cur_branch[Aggregator_View._TREE_LEAF][0][r_p][0]):
+                        cur_branch[Aggregator_View._TREE_LEAF][0][r_p][0] = dp[r_p][0]
+                    if PMU_funcs.more_than_with_none(dp[r_p][0], cur_branch[Aggregator_View._TREE_LEAF][0][r_p][1]):
+                        cur_branch[Aggregator_View._TREE_LEAF][0][r_p][1] = dp[r_p][0]
         if not aggregation_tree:
             Aggregator.Aggregator_Correspondent.write("Aggregator View empty.")
             return
