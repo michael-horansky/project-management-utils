@@ -776,6 +776,8 @@ class Journal():
                     # Numbered list
                     for i in range(len(cur_std_object)):
                         peel_layer(cur_std_object[i], i + 1, itemize_depth + 1)
+                else:
+                    self.error(f"Unknown itemize leaf type: {type(cur_std_object)}.")
 
         peel_layer(std_object)
         self.print_precomputed_batch(fancy_print_queue, plain_print_queue, v = v, agent = agent)
