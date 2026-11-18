@@ -40,6 +40,8 @@ class Aggregator_View():
         # Groups by all params in redundant_p (can be a single param or a list). Prints the aggregation tree to output.
         # Steps in the aggregation tree which do not branch are contracted to save space.
 
+        Aggregator.Aggregator_Correspondent.enter("Printing data grouped by equal parameters.")
+
         if redundant_p is None:
             redundant_p = []
         if isinstance(redundant_p, str):
@@ -116,8 +118,10 @@ class Aggregator_View():
                     return res
         output_obj = compressor(aggregation_tree) # standard print_itemize object
 
+
         Aggregator.Aggregator_Correspondent.print_itemize(output_obj)
 
+        Aggregator.Aggregator_Correspondent.exit()
 
 
     # -------------------------- aggregation methods --------------------------
