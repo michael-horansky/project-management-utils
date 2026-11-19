@@ -99,6 +99,11 @@ class Aggregator_View():
             # We don't mention the error
             return f"{p_name}={p_val[0]}, "
 
+        def commit_keystring(keystr):
+            if keystr == "":
+                return "[No params]"
+            return keystr[:-2]
+
         def tree_leaf_descriptor(tree_leaf):
             # returns a string
             res = f"{tree_leaf[1]} datapoints"
@@ -125,7 +130,7 @@ class Aggregator_View():
                 else:
                     res = {}
                     for k in cur_branch.keys():
-                        res[key_prefix + get_keystring(cur_p, k)] = compressor(cur_branch[k], cur_depth + 1)
+                        res[commit_keystring(key_prefix + get_keystring(cur_p, k))] = compressor(cur_branch[k], cur_depth + 1)
                     return res
         output_obj = compressor(aggregation_tree) # standard print_itemize object
 
