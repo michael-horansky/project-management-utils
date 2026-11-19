@@ -55,7 +55,8 @@ class Aggregator_View():
             self.agg.log.error(f"Unknown or unavailable parameters: {', '.join(unknown)}")
 
         Aggregator.Aggregator_Correspondent.write("Grouping by the following parameters:")
-        Aggregator.Aggregator_Correspondent.print_itemize(tuple(redundant_p))
+        Aggregator.Aggregator_Correspondent.print_itemize({x : self.agg.parameters[x]['label'] for x in redundant_p})
+        Aggregator.Aggregator_Correspondent.write("Data groups tagged by identifying parameters:")
 
         aggregation_tags = self.free_params.copy()
         for r_p in redundant_p:
