@@ -601,7 +601,8 @@ class Aggregator():
                         'p' : t['p'].copy(),
                         'f' : t['f'],
                         'label' : t['label'],
-                        'error_sensitive' : t['error_sensitive']
+                        'error_sensitive' : t['error_sensitive'],
+                        'identifying' : t['identifying']
                     }
             self.label = init_obj.label.copy()
             self.log = Aggregator.Aggregator_Correspondent
@@ -637,7 +638,6 @@ class Aggregator():
 
         for trans, t in self.transformations.items():
             trans_table_rows.append(trans)
-            print(f"\n\n{t}\n\n")
             trans_table_cells.append([t['label'], ', '.join(t['p']), t['error_sensitive'], t['identifying']])
 
         self.log.print_table("Parameters", param_table_cols, param_table_rows, param_table_cells, [1], align = 'c')
