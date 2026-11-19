@@ -469,6 +469,7 @@ class Aggregator_View():
                     dp[new_p] = None
                 else:
                     dp[new_p] = self.agg.transformations[new_p]["f"](*cur_args)
+                    print(f"\n{self.agg.transformations[new_p]["f"](*cur_args)}\n")
             else:
                 cur_args = []
                 for rp in self.agg.transformations[new_p]["p"]:
