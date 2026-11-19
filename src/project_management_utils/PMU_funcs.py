@@ -105,6 +105,9 @@ def wrap_text_with_prefix(text, w, pre, pre_plain = None, hyphenate = False, n =
         # We have to plainify the prefix and wrap it together with the text.
         return wrap_text(pre_plain + text, w, hyphenate = hyphenate, n = n)
     res = wrap_text(pre_plain + text, w, hyphenate = hyphenate, n = n)
+
+    print(f"\nres = {res}\n")
+
     res[0] = pre + res[0][len(pre_plain):]
     return res
 
