@@ -88,6 +88,14 @@ class Aggregator_View():
             Aggregator.Aggregator_Correspondent.write("Aggregator View empty.")
             return
 
+        def get_keystring(p_name, p_val):
+            # Turns parameter - value pair into a descriptive string
+            if p_val is None:
+                # We ignore
+                return ""
+            # We don't mention the error
+            return f"{p_name}={p_val[0]}, "
+
         def tree_leaf_descriptor(tree_leaf):
             # returns a string
             res = f"{tree_leaf[1]} datapoints"
@@ -109,12 +117,12 @@ class Aggregator_View():
                 if len(cur_branch.keys()) == 1:
                     # No branching, we compress
                     cur_p_val = list(cur_branch.keys())[0]
-                    added_key_prefix = f"{cur_p}={cur_p_val}, "
+                    added_key_prefix = get_keystring(cur_p, cur_p_val)
                     return compressor(cur_branch[cur_p_val], cur_depth + 1, key_prefix + added_key_prefix)
                 else:
                     res = {}
                     for k in cur_branch.keys():
-                        res[key_prefix + f"{cur_p}={k}"] = compressor(cur_branch[k], cur_depth + 1)
+                        res[key_prefix + get_keystring(cur_p, k)] = compressor(cur_branch[k], cur_depth + 1)
                     return res
         output_obj = compressor(aggregation_tree) # standard print_itemize object
 
