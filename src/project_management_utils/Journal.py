@@ -716,7 +716,7 @@ class Journal():
             nonlocal plain_print_queue
             # We assume key is None for itemize, str for labelled, int for numbered
             text_pre = ''
-            text_pre_plain = None
+            text_pre_plain = ''
             if key is None:
                 # Itemized
                 plain_keystr = '-'
@@ -742,13 +742,14 @@ class Journal():
             else:
                 print(f"\n\nmsg = {msg}\ntext_pre = {text_pre}")
                 sequenced_msg = PMU_funcs.wrap_text_with_prefix(msg, w - prefix_len, text_pre, pre_plain = text_pre_plain, hyphenate = True, n = n)
+                sequenced_msg_plain = PMU_funcs.wrap_text(text_pre_plain + msg, w - prefix_len, hyphenate = True, n = n)
                 print(sequenced_msg)
                 print("\n")
                 fancy_print_queue.append(' ' * (2 * itemize_depth) + fancy_keystr + sequenced_msg[0])
-                plain_print_queue.append(' ' * (2 * itemize_depth) + plain_keystr + sequenced_msg[0])
+                plain_print_queue.append(' ' * (2 * itemize_depth) + plain_keystr + sequenced_msg_plain[0])
                 for i in range(1, len(sequenced_msg)):
                     fancy_print_queue.append(' ' * prefix_len + sequenced_msg[i])
-                    plain_print_queue.append(' ' * prefix_len + sequenced_msg[i])
+                    plain_print_queue.append(' ' * prefix_len + sequenced_msg_plain[i])
 
 
         def peel_layer(cur_std_object, key = None, itemize_depth = 0):
