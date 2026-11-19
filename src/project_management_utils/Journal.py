@@ -740,11 +740,8 @@ class Journal():
                 plain_print_queue.append(PMU_funcs.st('...', w))
                 return
             else:
-                print(f"\n\nmsg = {msg}\ntext_pre = {text_pre}")
                 sequenced_msg = PMU_funcs.wrap_text_with_prefix(msg, w - prefix_len, text_pre, pre_plain = text_pre_plain, hyphenate = True, n = n)
                 sequenced_msg_plain = PMU_funcs.wrap_text(text_pre_plain + msg, w - prefix_len, hyphenate = True, n = n)
-                print(sequenced_msg)
-                print("\n")
                 fancy_print_queue.append(' ' * (2 * itemize_depth) + fancy_keystr + sequenced_msg[0])
                 plain_print_queue.append(' ' * (2 * itemize_depth) + plain_keystr + sequenced_msg_plain[0])
                 for i in range(1, len(sequenced_msg)):
