@@ -726,7 +726,7 @@ class Aggregator():
 
     def register_transformations(self, new_trans, error_on_duplicate = True):
         for new_p, new_p_props in new_trans.items():
-            self.register_transformation(new_p, new_p_props["p"], new_p_props["f"], label = new_p_props["label"], error_sensitive = new_p_props.get("error_sensitive", False), error_on_duplicate = error_on_duplicate)
+            self.register_transformation(new_p, new_p_props["p"], new_p_props["f"], label = new_p_props["label"], error_sensitive = new_p_props.get("error_sensitive", False), identifying = new_p_props.get("identifying", True), error_on_duplicate = error_on_duplicate)
 
 
     def add_dp(self, dp):
