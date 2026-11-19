@@ -734,7 +734,7 @@ class Journal():
                 fancy_keystr = color.fg_highlight('yellow', '+', True)
                 text_pre = color.fg_highlight('yellow', key + ':', True) + ' '
                 text_pre_plain = key + ': '
-            if w < prefix_len + min(min_w):
+            if w < prefix_len + min_w:
                 # We skip the printing with an ellipsis
                 fancy_print_queue.append(PMU_funcs.st('...', w))
                 plain_print_queue.append(PMU_funcs.st('...', w))
