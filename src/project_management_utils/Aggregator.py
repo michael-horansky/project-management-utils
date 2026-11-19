@@ -56,9 +56,11 @@ class Aggregator_View():
             self.agg.log.error(f"Unknown or unavailable redundant parameters: '{str_list_delim.join(unknown)}'")
 
         unknown = set(reserved_p) - set(self.free_params)
+        if unknown:
             self.agg.log.error(f"Unknown or unavailable reserved parameter: '{str_list_delim.join(unknown)}'.")
 
         conflicting = set(reserved_p).intersection(set(redundant_p))
+        if conflicting:
             self.agg.log.error(f"Parameters marked as both redundant and reserved: '{str_list_delim.join(conflicting)}'.")
 
         for free_p in self.free_params:
