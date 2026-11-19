@@ -711,10 +711,12 @@ class Journal():
         fancy_print_queue = []
         plain_print_queue = []
 
-        def commit_msg(itemize_depth, key, msg = None):
+        def commit_msg(itemize_depth, key, msg = ""):
             nonlocal fancy_print_queue
             nonlocal plain_print_queue
             # We assume key is None for itemize, str for labelled, int for numbered
+            text_pre = ''
+            text_pre_plain = None
             if key is None:
                 # Itemized
                 plain_keystr = '-'
@@ -727,30 +729,23 @@ class Journal():
                 fancy_keystr = color.fg_highlight('yellow', str(key) + '.', True) + ' '
             elif isinstance(key, str):
                 # Labelled
-                plain_keystr = key + ': '
+                plain_keystr = '+'
                 prefix_len = (2 * itemize_depth) + len(plain_keystr)
-                fancy_keystr = color.fg_highlight('yellow', key + ':', True) + ' '
-            if w < (2 * itemize_depth) + len(plain_keystr.rstrip()):
+                fancy_keystr = color.fg_highlight('yellow', '+', True)
+                text_pre = color.fg_highlight('yellow', key + ':', True) + ' '
+                text_pre_plain = key + ': '
+            if w < prefix_len + min(min_w):
                 # We skip the printing with an ellipsis
                 fancy_print_queue.append(PMU_funcs.st('...', w))
                 plain_print_queue.append(PMU_funcs.st('...', w))
                 return
-            if msg is None:
-                fancy_print_queue.append(' ' * (2 * itemize_depth) + fancy_keystr.rstrip())
-                plain_print_queue.append(' ' * (2 * itemize_depth) + plain_keystr.rstrip())
-                return
             else:
-                if w < prefix_len + min(min_w, len(msg)):
-                    fancy_print_queue.append(PMU_funcs.st('...', w))
-                    plain_print_queue.append(PMU_funcs.st('...', w))
-                    return
-                else:
-                    sequenced_msg = PMU_funcs.wrap_text(msg, w - prefix_len, hyphenate = True, n = n)
-                    fancy_print_queue.append(' ' * (2 * itemize_depth) + fancy_keystr + sequenced_msg[0])
-                    plain_print_queue.append(' ' * (2 * itemize_depth) + plain_keystr + sequenced_msg[0])
-                    for i in range(1, len(sequenced_msg)):
-                        fancy_print_queue.append(' ' * prefix_len + sequenced_msg[i])
-                        plain_print_queue.append(' ' * prefix_len + sequenced_msg[i])
+                sequenced_msg = PMU_funcs.wrap_text_with_prefix(msg, w - prefix_len, text_pre, pre_plain = text_pre_plain, hyphenate = True, n = n)
+                fancy_print_queue.append(' ' * (2 * itemize_depth) + fancy_keystr + sequenced_msg[0])
+                plain_print_queue.append(' ' * (2 * itemize_depth) + plain_keystr + sequenced_msg[0])
+                for i in range(1, len(sequenced_msg)):
+                    fancy_print_queue.append(' ' * prefix_len + sequenced_msg[i])
+                    plain_print_queue.append(' ' * prefix_len + sequenced_msg[i])
 
 
         def peel_layer(cur_std_object, key = None, itemize_depth = 0):

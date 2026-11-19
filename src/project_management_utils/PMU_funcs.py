@@ -49,7 +49,7 @@ def wrap_text(text, w, min_w = None, hyphenate = False, n = 6):
         return [""]
     if min_w is not None and w < min_w:
         # Cannot print anything
-        return []
+        return [""]
 
     # n cannot be more than width - 1
     n = min(n, w - 1)
@@ -90,6 +90,22 @@ def wrap_text(text, w, min_w = None, hyphenate = False, n = 6):
     if text:
         res.append(text)
 
+    return res
+
+def wrap_text_with_prefix(text, w, pre, pre_plain = None, hyphenate = False, n = 6):
+    # Many times we need to wrap plain text with a fancy prefix. This function
+    # normalises the desired behaviour:
+    #   -If the length of the prefix doesn't exceed w, we slap it in the first
+    #    line before the message.
+    #   -Otherwise, we join the plain prefix with the message and wrap it all.
+    if pre_plain is None:
+        # pre is presumed to be plain
+        return wrap_text(pre + text, w, hyphenate = hyphenate, n = n)
+    if len(pre_plain) > w:
+        # We have to plainify the prefix and wrap it together with the text.
+        return wrap_text(pre_plain + text, w, hyphenate = hyphenate, n = n)
+    res = wrap_text(pre_plain + text, w, hyphenate = hyphenate, n = n)
+    res[0] = pre + res[0][:len(pre_plain)]
     return res
 
 def auto_halign(obj):
