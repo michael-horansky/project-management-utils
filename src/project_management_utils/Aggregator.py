@@ -40,7 +40,7 @@ class Aggregator_View():
         # Groups by all params in redundant_p (can be a single param or a list). Prints the aggregation tree to output.
         # Steps in the aggregation tree which do not branch are contracted to save space.
 
-        Aggregator.Aggregator_Correspondent.enter("Printing data grouped by equal parameters.")
+        Aggregator.Aggregator_Correspondent.enter("Printing grouped data.")
 
         if redundant_p is None:
             redundant_p = []
@@ -54,8 +54,10 @@ class Aggregator_View():
         if unknown:
             self.agg.log.error(f"Unknown or unavailable parameters: {', '.join(unknown)}")
 
-        aggregation_tags = self.free_params.copy()
+        Aggregator.Aggregator_Correspondent.write("Grouping by the following parameters:")
+        Aggregator.Aggregator_Correspondent.print_itemize(tuple(redundant_p))
 
+        aggregation_tags = self.free_params.copy()
         for r_p in redundant_p:
             aggregation_tags.remove(r_p)
 

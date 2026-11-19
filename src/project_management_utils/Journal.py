@@ -108,7 +108,7 @@ class Journal():
             "print_itemize" : "Prints an itemized/enumerated list from a standard object. Supports nested lists. Max width can be specified.",
             "nested numbered list (list)" : ["First element", "Second element", {"this" : "First part of third element", "that" : "Second part of third element"}, "Fourth element"],
             "nested labelled list (dict)" : {"Keyword" : "Value", "Other keyword" : "Other value"},
-            "nested itemized list (tuple)" : ("Tuples are immutable...", ["Nested numbered list here!", "Nesting iterables inside itemized lists doesn't really look good due to the dangling dash.", "Don't forget the trailing space when creating a single-element tuple!"], "...but they can contain references to mutable objects, so don't worry about nesting other iterables inside them.")
+            "nested itemized list (tuple)" : ("Tuples are immutable...", ["Nested numbered list here!", "Nesting iterables inside itemized lists doesn't really look good due to the dangling dash.", "Don't forget the trailing comma when creating a single-element tuple!"], "...but they can contain references to mutable objects, so don't worry about nesting other iterables inside them.")
             }, w = 80)
         sample_journal.exit()
 
