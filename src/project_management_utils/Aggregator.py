@@ -111,7 +111,7 @@ class Aggregator_View():
                 if key_prefix == "":
                     return tree_leaf_descriptor(cur_branch[Aggregator_View._TREE_LEAF])
                 else:
-                    return {key_prefix : tree_leaf_descriptor(cur_branch[Aggregator_View._TREE_LEAF])}
+                    return {key_prefix[:-2] : tree_leaf_descriptor(cur_branch[Aggregator_View._TREE_LEAF])}
             else:
                 cur_p = aggregation_tags[cur_depth]
                 if len(cur_branch.keys()) == 1:
