@@ -269,6 +269,9 @@ class Aggregator_View():
         self.data = unwrapper(aggregation_tree)
 
     def f_group_average(self, vals, errs, weights):
+        # If we passed a single datapoint, we reiterate it
+        if len(vals) == 1:
+            return (vals[0], errs[0])
         # For simplicity, we now ignore errs, as we assume they are artifacts of the distribution from which vals are sampled.
         avg_val = np.average(vals, weights = weights)
         err = np.sqrt(np.average((np.asarray(vals)-avg_val)**2, weights = weights)) # manual calc to keep track of weights
@@ -469,7 +472,6 @@ class Aggregator_View():
                     dp[new_p] = None
                 else:
                     dp[new_p] = self.agg.transformations[new_p]["f"](*cur_args)
-                    print(f"\n{self.agg.transformations[new_p]["f"](*cur_args)}\n")
             else:
                 cur_args = []
                 for rp in self.agg.transformations[new_p]["p"]:
