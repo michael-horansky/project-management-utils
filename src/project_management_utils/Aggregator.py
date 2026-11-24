@@ -688,10 +688,13 @@ class Aggregator():
         self.parameters[name] = {"label" : label, "default" : default, "identifying" : identifying}
         self.register_label(name, label)
 
+        self.complete_data_from_params()
+
     def register_parameters(self, p, error_on_duplicate = True):
         # p is in the form {param : {"label" : ..., "default" : ...}}
         for p_name, p_props in p.items():
             self.register_parameter(p_name, p_props.get("label", None), p_props.get("default", None), p_props.get("identifying", True), error_on_duplicate = error_on_duplicate)
+
 
     def register_transformation(self, new_p, old_ps, f_trans, label = None, error_sensitive = False, identifying = True, error_on_duplicate = True):
         # new_p is name of new parameter
