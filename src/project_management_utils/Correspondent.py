@@ -44,7 +44,7 @@ class Correspondent:
 
     def exit(self):
         if journal is not None:
-            journal.exit()
+            return journal.exit()
 
     def dump(erase_journal_text = True):
         if journal is not None:
